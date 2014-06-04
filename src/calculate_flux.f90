@@ -106,9 +106,18 @@ measurements when WPL correction is applied.')")
   !-------------------------------------------------------------------------------
   ! Determine unit vector k of planar fit coordinate
   ! (Lee, L., W. Massman, and B. Law, 2004: Handbook of Micrometeorology, Chapt 4)
+  ! unit_k is unit vector parallel to new coordinate z axis
+  ! bo is instrument offset in w1
   !-------------------------------------------------------------------------------
 
   WRITE(*,*)"\n  Calculate unit vector k of planar fit coordinate ...\n"
+
+  unit_k(1) = 0
+  unit_k(2) = 0
+  unit_k(3) = 1
+  b0 = 0
+
+  ! Comment the following statement out if do not want to do coordinate correction
 
   CALL unit_vector_k(infid, unit_k, b0)
 
