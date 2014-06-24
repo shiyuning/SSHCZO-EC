@@ -16,9 +16,11 @@ INSTRUCTION:
 ```
     EXAMPLE:  
     If we want to process the data of May 2014, and the raw data come in from three files, ./incoming/EC_ts_data1.dat, ./incoming/EC_ts_data2.dat, and ./incoming/EC_ts_data3.dat, we run:
+
 ```
 "./read_data 2014-05 ./incoming/EC_ts_data1.dat ./incoiming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat"
 ``` 
+
 2. Split one month data into single days:
     This step is optional. This should be executed after the first step, if needed. The syntax is:
 ```
