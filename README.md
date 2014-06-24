@@ -15,7 +15,6 @@ INSTRUCTION:
 ./read_data YYYY-MM filename1 [filename2 ...]
 ~~~
    EXAMPLE:
-
    If we want to process the data of May 2014, and the raw data come in from three files, ./incoming/EC_ts_data1.dat, ./incoming/EC_ts_data2.dat, and ./incoming/EC_ts_data3.dat, we run:
 ~~~
 ./read_data 2014-05 ./incoming/EC_ts_data1.dat ./incoiming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat
@@ -31,9 +30,7 @@ INSTRUCTION:
 ./calculate_flux YYYY-MM [-WPL pressure_filename]
 ~~~
    -WPL is an optional parameter. When we use the -WPL parameter, the Webb-Pearman-Leuning correction will be applied. The WPL correction requires the surface pressure data, so the location of the surface pressure records (in the ten-minute tower top file) must be specified.  
-
    EXAMPLE:
-
    If we want to process the data of May 2014 with WPL correction, and the ten-minute tower top file is at "incoming/EC_ten_min_data.dat", we run
 ~~~
 ./calculate_flux 2014-05 -WPL ./incoming/EC_ten_min_data.dat
