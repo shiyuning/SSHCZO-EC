@@ -2,7 +2,7 @@ SSHCZO-EC
 =========
 
 Eddy covariance flux code for Shale Hills Critical Zone Observatory
-Contact: Yuning Shi (yshi@psu.edu)
+Contact: Yuning Shi [Email](mailto:yshi@psu.edu)
 
 Type "make all" to compile all executables.
 
@@ -18,7 +18,7 @@ INSTRUCTION:
    ./read_data YYYY-MM filename1 [filename2 ...]
    ~~~
 
-   EXAMPLE:
+   **EXAMPLE:**
 
    If we want to process the data of May 2014, and the raw data come in from three files, ./incoming/EC_ts_data1.dat, ./incoming/EC_ts_data2.dat, and ./incoming/EC_ts_data3.dat, we run:
 
@@ -47,7 +47,7 @@ INSTRUCTION:
    When we use the -WPL parameter, the Webb-Pearman-Leuning correction will be applied.
    The WPL correction requires the surface pressure data, so the location of the surface pressure records (in the ten-minute tower top file) must be specified.  
 
-   EXAMPLE:
+   **EXAMPLE:**
 
    If we want to process the data of May 2014 with WPL correction, and the ten-minute tower top file is at "incoming/EC_ten_min_data.dat", we run
    ~~~
