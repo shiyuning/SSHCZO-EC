@@ -2,7 +2,7 @@ SSHCZO-EC
 =========
 
 Eddy covariance flux code for Shale Hills Critical Zone Observatory
-Contact: Yuning Shi [Email](mailto:yshi@psu.edu)
+Contact: Yuning Shi [(Send Email)](mailto:yshi@psu.edu)
 
 Type "make all" to compile all executables.
 
