@@ -2,12 +2,14 @@ SSHCZO-EC
 =========
 
 Eddy covariance flux code for Shale Hills Critical Zone Observatory
+
 Contact: Yuning Shi [(Send Email)](mailto:yshi@psu.edu)
 
-Type "make all" to compile all executables.
 
 INSTRUCTION:
 ------------
+
+1. Type `make all` to compile all executables.
 
 1. Read raw data of a single month into one file:  
    When the calculate_flux program processes the flux data of a certain month, it will look into the "Data/YYYY-MM/" directory for the "YYYY-MM.dat" file.
