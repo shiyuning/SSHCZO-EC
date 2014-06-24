@@ -20,13 +20,11 @@ INSTRUCTION:
 ~~~
 ./read_data 2014-05 ./incoming/EC_ts_data1.dat ./incoiming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat
 ~~~
-
 2. Split one month data into single days:
    This step is optional. This should be executed after the first step, if needed. The syntax is:
 ~~~
 ./split_data YYYY-MM
 ~~~
-
 3. Process flux data of a single month:
    This is the core of the EC process. When the program begins processing, it will look into the "Data" directory for the "YYYY-MM.dat" file. So make sure the first step has been done. The syntax for flux processing program is:
 ~~~
