@@ -26,9 +26,11 @@ INSTRUCTION:
    ~~~
 3. Process flux data of a single month:
    This is the core of the EC process. When the program begins processing, it will look into the "Data" directory for the "YYYY-MM.dat" file. So make sure the first step has been done. The syntax for flux processing program is:
+
    ~~~
    ./calculate_flux YYYY-MM [-WPL pressure_filename]
    ~~~
+
    -WPL is an optional parameter. When we use the -WPL parameter, the Webb-Pearman-Leuning correction will be applied. The WPL correction requires the surface pressure data, so the location of the surface pressure records (in the ten-minute tower top file) must be specified.  
    EXAMPLE:
    If we want to process the data of May 2014 with WPL correction, and the ten-minute tower top file is at "incoming/EC_ten_min_data.dat", we run
