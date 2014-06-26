@@ -61,12 +61,13 @@ CSAT3 AND IRGA DIAGNOSTIC INFORMATION
 
 The diagnostic value in the 10-Hz data is a 12-bit integer.
 
-bit 11   bit 10   bit 9   bit 8|bit 7   bit 6   bit 5   bit 4|bit 3   bit 2   bit 1   bit 0
+bit 11&nbsp;&nbsp;&nbsp;bit 10&nbsp;&nbsp;&nbsp;bit 9&nbsp;&nbsp;&nbsp;bit 8|bit 7&nbsp;&nbsp;&nbsp;bit 6&nbsp;&nbsp;&nbsp;bit 5&nbsp;&nbsp;&nbsp;bit 4|bit 3&nbsp;&nbsp;&nbsp;bit 2&nbsp;&nbsp;&nbsp;bit 1&nbsp;&nbsp;&nbsp;bit 0
 :--------------------------:|:------------------------:|:------------------------:
 CSAT3 flags|IRGA flags|AGC/6.25
 
 
 ### CSAT3 flags:
+
 *1000: Difference in the speed of sound between the three non-orthogonal axes is greater than 2.360 ms-1
 *0100: Poor signal lock
 *0010: Sonic signal amplitude too high
@@ -78,6 +79,7 @@ CSAT3 flags|IRGA flags|AGC/6.25
 *1101: NaN special case
 
 ### IRGA flags:
+
 *1000: chopper
 *0100: detector
 *0010: pll
