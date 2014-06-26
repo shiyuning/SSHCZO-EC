@@ -69,20 +69,31 @@ CSAT3 flags|IRGA flags|AGC/6.25
 ### CSAT3 flags:
 
 *1000: Difference in the speed of sound between the three non-orthogonal axes is greater than 2.360 ms-1
+
 *0100: Poor signal lock
+
 *0010: Sonic signal amplitude too high
+
 *0001: Sonic signal amplitude too low
+
 *1001: Lost trigger special case
+
 *1010: No data special case
+
 *1011: Wrong CSAT3 embedded code special case
+
 *1100: SDM error special case
+
 *1101: NaN special case
 
 ### IRGA flags:
 
 *1000: chopper
+
 *0100: detector
+
 *0010: pll
+
 *0001: sync
 
 ### Automatic Gain Control (AGC) value
