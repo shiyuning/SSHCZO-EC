@@ -55,3 +55,25 @@ INSTRUCTION:
    ~~~
    ./calculate_flux 2014-05 -WPL ./incoming/EC_ten_min_data.dat
    ~~~
+
+CSAT3 AND IRGA DIAGNOSTIC INFORMATION
+-------------------------------------
+
+The diagnostic value in the 10-Hz data is a 12-bit integer.
+
+bit 11  bit 10  bit 9  bit 8|bit 7  bit 6  bit 5  bit 4|bit 3  bit 2  bit 1  bit 0
+:--------------------------:|:------------------------:|:------------------------:
+CSAT3 flags|IRGA flags|AGC/6.25
+
+CSAT3:
+9: lost trigger special case
+10: no data special case
+11: wrong CSAT3 embedded code special case
+12: SDM error special case
+13: NaN special case
+
+IRGA:
+1000: chopper
+0100: detector
+0010: pll
+0001: sync
