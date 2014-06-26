@@ -61,19 +61,31 @@ CSAT3 AND IRGA DIAGNOSTIC INFORMATION
 
 The diagnostic value in the 10-Hz data is a 12-bit integer.
 
-bit 11  bit 10  bit 9  bit 8|bit 7  bit 6  bit 5  bit 4|bit 3  bit 2  bit 1  bit 0
+bit 11   bit 10   bit 9   bit 8|bit 7   bit 6   bit 5   bit 4|bit 3   bit 2   bit 1   bit 0
 :--------------------------:|:------------------------:|:------------------------:
 CSAT3 flags|IRGA flags|AGC/6.25
 
-CSAT3:
-9: lost trigger special case
-10: no data special case
-11: wrong CSAT3 embedded code special case
-12: SDM error special case
-13: NaN special case
 
-IRGA:
-1000: chopper
-0100: detector
-0010: pll
-0001: sync
+### CSAT3 flags:
+*1000: Difference in the speed of sound between the three non-orthogonal axes is greater than 2.360 ms-1
+*0100: Poor signal lock
+*0010: Sonic signal amplitude too high
+*0001: Sonic signal amplitude too low
+*1001: Lost trigger special case
+*1010: No data special case
+*1011: Wrong CSAT3 embedded code special case
+*1100: SDM error special case
+*1101: NaN special case
+
+### IRGA flags:
+*1000: chopper
+*0100: detector
+*0010: pll
+*0001: sync
+
+### Automatic Gain Control (AGC) value
+The automatic gain control (AGC) valude indicates how dirty the sensor head windows are.
+Typical AGC values are 50-60%.
+As dirt accumulates on the sensor head windows the value of AGC will increase.
+Droplets on the window can also increase AGC value.
+The AGC value should be monitored and the LI-7500 optical windows should be cleaned when necessary (when the AGC value approaches 100%).
