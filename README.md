@@ -68,7 +68,7 @@ CSAT3 flags|IRGA flags|AGC/6.25
 
 ### CSAT3 flags:
 
-* 1000: Difference in the speed of sound between the three non-orthogonal axes is greater than 2.360 m&nbsp;s<sup>-1<\sup>
+* 1000: Difference in the speed of sound between the three non-orthogonal axes is greater than 2.360&nbsp;m&nbsp;s<sup>-1</sup>
 * 0100: Poor signal lock
 * 0010: Sonic signal amplitude too high
 * 0001: Sonic signal amplitude too low
