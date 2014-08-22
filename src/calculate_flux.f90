@@ -943,7 +943,7 @@ SUBROUTINE read_pressure_file(Precord, pressure_file)
   CHARACTER(100) :: buffer
   CHARACTER(200) :: pressure_file
   INTEGER :: RECORD, error
-  REAL :: P, H2O1, H2O2, T1, T2, RH, Rn, !PAR, LWS
+  REAL :: P, H2O1, H2O2, T1, T2, RH, Rn !PAR, LWS
   INTEGER :: ind
   TYPE(tm) :: timeinfo
   TYPE(Pressuredata) :: Precord
