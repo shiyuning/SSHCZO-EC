@@ -55,6 +55,18 @@ INSTRUCTION:
    ~~~
    ./calculate_flux 2014-05 -WPL ./incoming/EC_ten_min_data.dat
    ~~~
+   
+   **Caution:**
+   
+   If you have problems reading pressure data, please check if the code and data are match.
+   
+   Current format of Pressure file (before June 2014) is below:
+   "TIMESTAMP","RECORD","pressure_irga_mean","h2o_irga_mean","h2o_hmp_mean","LWS_current","T_hmp_mean","T_hmp_current","RH_hmp_current","PAR_mean"
+   
+   Code in calculate_flux.f90 reading these data is in line 960:
+   READ(600,*,IOSTAT = error) buffer, RECORD, P, H2O1, H2O2, LWS, T1, T2, RH, PAR
+   
+   
 
 CSAT3 AND IRGA DIAGNOSTIC INFORMATION
 -------------------------------------
