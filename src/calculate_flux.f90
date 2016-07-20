@@ -537,8 +537,8 @@ SUBROUTINE flux(rawtime, record, unit_k, b0, flux_record, outfid_flag, outfid_no
       WRITE(*,"('  Sensible heat flux = ', F9.2, ' W m-2')") H
       WRITE(*,"('  H2O flux before WPL correction = ', F9.2, ' kg m-2')") E0*Lv
       WRITE(*,"('  H2O flux after WPL correction = ', F9.2, ' kg m-2')") E*Lv
-      WRITE(*,"('  CO2 flux before WPL correction = ', F9.2, ' ug m-2 s-1')") F0*1000/44
-      WRITE(*,"('  CO2 flux after WPL correction = ', F9.2, ' ug m-2 s-1')") Fc*1000/44
+      WRITE(*,"('  CO2 flux before WPL correction = ', F9.2, ' umol m-2 s-1')") F0*1000/44
+      WRITE(*,"('  CO2 flux after WPL correction = ', F9.2, ' umol m-2 s-1')") Fc*1000/44
     ELSE
       rho = 1.20
 
@@ -556,7 +556,7 @@ SUBROUTINE flux(rawtime, record, unit_k, b0, flux_record, outfid_flag, outfid_no
 
       WRITE(*,"('  Sensible heat flux = ', F9.2, ' W m-2')") H
       WRITE(*,"('  H2O flux = ', F9.2, ' kg m-2')") E*Lv
-      WRITE(*,"('  CO2 flux = ', F9.2, ' ug m-2 s-1')") Fc*1000/44
+      WRITE(*,"('  CO2 flux = ', F9.2, ' umol m-2 s-1')") Fc*1000/44
     END IF      
 
     flux_record%TA = T_bar
