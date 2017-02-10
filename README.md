@@ -66,7 +66,6 @@ INSTRUCTION:
    "TIMESTAMP","RECORD","pressure_irga_mean","T_hmp_mean","T_hmp_current","RH_hmp_current","h2o_irga_mean","h2o_hmp_mean"
    ```
    Code in calculate_flux.f90 reading these data is in line 960:
-   
    ```Fortran
    READ(600,*,IOSTAT = error) buffer, RECORD, P, T1, T2, RH, H2O1, H2O2
    ```
