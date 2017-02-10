@@ -16,34 +16,34 @@ INSTRUCTION:
    To produce the `YYYY-MM.dat` file, we must run the read_data program first.
    The syntax is:
 
-   ~~~shell
+   ```shell
    $ ./read_data YYYY-MM filename1 [filename2 ...]
-   ~~~
+   ```
 
    **EXAMPLE:**
 
    If we want to process the data of May 2014, and the raw data come in from three files, `./incoming/EC_ts_data1.dat`, `./incoming/EC_ts_data2.dat`, and `./incoming/EC_ts_data3.dat`, we run:
 
-   ~~~
+   ```shell
    $ ./read_data 2014-05 ./incoming/EC_ts_data1.dat ./incoiming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat
-   ~~~
+   ```
 
 2. Split one month data into single days:
    This step is optional. This should be executed after the previous step, if needed.
    The syntax is:
 
-   ~~~
-   ./split_data YYYY-MM
-   ~~~
+   ```shell
+   $ ./split_data YYYY-MM
+   ```
 
 3. Process flux data of a single month:
    This is the core of the EC process.
    When the program begins processing, it will look into the `Data` directory for the `YYYY-MM.dat` file.
    So make sure `read_data` has been executed. The syntax for flux processing program is:
 
-   ~~~
-   ./calculate_flux YYYY-MM [-WPL pressure_filename]
-   ~~~
+   ```shell
+   $ ./calculate_flux YYYY-MM [-WPL pressure_filename]
+   ```
 
    `-WPL` is an optional parameter.
    When we use the `-WPL` parameter, the Webb-Pearman-Leuning correction will be applied.
@@ -52,23 +52,26 @@ INSTRUCTION:
    **EXAMPLE:**
 
    If we want to process the data of May 2014 with WPL correction, and the ten-minute tower top file is located at `incoming/EC_ten_min_data.dat`, we run
-   ~~~
-   ./calculate_flux 2014-05 -WPL ./incoming/EC_ten_min_data.dat
-   ~~~
+   
+   ```shell
+   $ ./calculate_flux 2014-05 -WPL ./incoming/EC_ten_min_data.dat
+   ```
    
    **CAUTION:**
    
    If you have problems reading pressure data, please check if the code and the data structure match.
    
    Current format of Pressure file (after June 01, 2014) is below:
-   ~~~
+   
+   ```
    "TIMESTAMP","RECORD","pressure_irga_mean","T_hmp_mean","T_hmp_current","RH_hmp_current","h2o_irga_mean","h2o_hmp_mean"
-   ~~~
+   ```
    
    Code in calculate_flux.f90 reading these data is in line 960:
-   ~~~
+   
+   ```Fortran
    READ(600,*,IOSTAT = error) buffer, RECORD, P, T1, T2, RH, H2O1, H2O2
-   ~~~
+   ```
    
 
 CSAT3 AND IRGA DIAGNOSTIC INFORMATION
