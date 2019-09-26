@@ -12,7 +12,7 @@ PROGRAM SHEC
   USE time
 
   IMPLICIT NONE
- 
+
   CHARACTER(100) :: buffer, inputname, output_flag, output_no_flag
   CHARACTER(200) :: pressure_filename
   INTEGER :: error
@@ -52,8 +52,7 @@ PROGRAM SHEC
   IF (WPL == 1) CALL get_command_argument(3, pressure_filename)
 
   IF (LEN_TRIM(pressure_filename) == 0) THEN
-    WRITE(*,"('\n  ERROR! Must specify the file that contains pressure &
-measurements when WPL correction is applied.')")
+    WRITE(*,"('\n  ERROR! Must specify the file that contains pressure measurements when WPL correction is applied.')")
     STOP
   END IF
 
@@ -70,7 +69,6 @@ measurements when WPL correction is applied.')")
   !-------------------------------------------------------------------------------
 
   WRITE(inputname,"('Data/',I4.4,'-',I2.2,'/',I4.4,'-',I2.2,'.dat')") datayear, datamonth, datayear, datamonth
-!  WRITE(inputname,"(I4.4,'-',I2.2,'/','2009-12-31.dat')") datayear, datamonth
   OPEN(UNIT=infid, FILE=inputname, ACTION='read', IOSTAT=error)
   IF (error/=0) GOTO 1000
 
@@ -78,7 +76,7 @@ measurements when WPL correction is applied.')")
 
   !-------------------------------------------------------------------------------
   ! Open output files:
-  ! *-flux-flag.dat contain diagnostic flags
+  ! *-flux-flag.dat contains diagnostic flags
   ! *-flux.dat is to be posted online
   !-------------------------------------------------------------------------------
 
@@ -91,7 +89,7 @@ measurements when WPL correction is applied.')")
   !-------------------------------------------------------------------------------
   ! Write file headers
   !-------------------------------------------------------------------------------
-  
+
   WRITE(outfid_flag,"(A)") "Shale Hills CZO flux tower data"
   WRITE(outfid_flag,"(A)") "Contact: Yuning Shi (yshi@psu.edu)"
   WRITE(outfid_flag,"(A)") "YEAR,MONTH,MDAY,DOY,HRMIN,DTIME,UST,TA,WD,WS,VWS,FC,H,LE,CO2,H2O,U_FLAG,W_FLAG,T_FLAG,H2O_FLAG,CO2_FLAG"
@@ -117,8 +115,7 @@ measurements when WPL correction is applied.')")
   unit_k(3) = 1
   b0 = 0
 
-  ! Comment the following statement out if do not want to do coordinate correction
-
+  ! Comment the following statement out if coordinate correction is not needed
   CALL unit_vector_k(infid, unit_k, b0)
 
   WRITE(*,"('  k_vector = [',F,',',F,',',F,']')") unit_k(1),unit_k(2),unit_k(3)
@@ -132,7 +129,7 @@ measurements when WPL correction is applied.')")
 
   REWIND(infid,iostat = error)
 
-  READ(infid,*,IOSTAT = error) buffer      ! Skip head-lines
+  READ(infid,*,IOSTAT = error) buffer      ! Skip header lines
   READ(infid,*,IOSTAT = error) buffer
   READ(infid,*,IOSTAT = error) buffer
   READ(infid,*,IOSTAT = error) buffer
@@ -186,7 +183,7 @@ measurements when WPL correction is applied.')")
 
     DO WHILE (recordtime+CEILING(second)>time_pointer)  ! If 30-min records are collected, calculate fluxes
       CALL flux(time_pointer, record, unit_k, b0, flux_record, outfid_flag, outfid_no_flag, WPL, pressure_filename)
-      record%record_no = 0        ! Re-initiate ECdata
+      record%record_no = 0        ! Re-initialize ECdata
       time_pointer = time_pointer + 30*60     ! Time pointer points to the next 30-min
     END DO
 
@@ -237,7 +234,7 @@ SUBROUTINE unit_vector_k(fid, unit_k, b0)
   REAL :: unit_k(3)
 
   !-------------------------------------------------------------------------------
-  ! Initiate variables
+  ! Initialize variables
   !-------------------------------------------------------------------------------
 
   su = 0
@@ -251,7 +248,7 @@ SUBROUTINE unit_vector_k(fid, unit_k, b0)
   flen = 0
 
   !-------------------------------------------------------------------------------
-  ! Skip headlines
+  ! Skip header lines
   !-------------------------------------------------------------------------------
 
   READ(fid,*,IOSTAT = error) buffer
@@ -276,11 +273,6 @@ SUBROUTINE unit_vector_k(fid, unit_k, b0)
     su2 = su2 + Ux*Ux
     sv2 = sv2 + Uy*Uy
     flen = flen +1
-!    IF(IEEE_IS_NAN(su)) THEN
-!      WRITE(*,*) buffer, ind, Ux, Uy, Uz, error
-!      WRITE(*,*) IBITS(diag,4,4)
-!      EXIT
-!    END IF
   END DO
 
 
@@ -530,7 +522,7 @@ SUBROUTINE flux(rawtime, record, unit_k, b0, flux_record, outfid_flag, outfid_no
 !      H = H+rho*c_air*(-0.51*Ta*wh2o_bar/1000)/rho  ! Sonic correction
 
       E = (1+ 1.6077*rho_v/rho_d)*(E0+H/rho/c_air*rho_v/Ta)
-      Fc = F0 + 1.6077*E/rho_d*rho_c/(1+1.6077*(rho_v/rho_d)) + H/rho/c_air*rho_c/Ta    
+      Fc = F0 + 1.6077*E/rho_d*rho_c/(1+1.6077*(rho_v/rho_d)) + H/rho/c_air*rho_c/Ta
 
       WRITE(*,"('  Air pressure = ', F9.2,' Pa')") P
       WRITE(*,"('  Air density = ', F9.2, ' kg m-3')") rho
@@ -547,17 +539,13 @@ SUBROUTINE flux(rawtime, record, unit_k, b0, flux_record, outfid_flag, outfid_no
 
       H = rho*c_air*(uT_bar*unit_k(1)+vT_bar*unit_k(2)+wT_bar*unit_k(3))
 
-      ! Sonic correction is commented out because it is already done in LI-7500
-
-!      H = H+rho*c_air*(-0.51*Ta*wh2o_bar/1000)/rho  ! Sonic correction
-
       E = E0
       Fc = F0
 
       WRITE(*,"('  Sensible heat flux = ', F9.2, ' W m-2')") H
       WRITE(*,"('  H2O flux = ', F9.2, ' kg m-2')") E*Lv
       WRITE(*,"('  CO2 flux = ', F9.2, ' umol m-2 s-1')") Fc*1000/44
-    END IF      
+    END IF
 
     flux_record%TA = T_bar
     flux_record%WD = eta
@@ -621,21 +609,21 @@ SUBROUTINE FINDInv(matrix, inverse, n, errorflag)
   IMPLICIT NONE
 
   !-------------------------------------------------------------------------------
-  !Declarations
+  ! Declarations
   !-------------------------------------------------------------------------------
 
   INTEGER, INTENT(IN) :: n
   INTEGER, INTENT(OUT) :: errorflag      !Return error status. -1 for error, 0 for normal
   REAL, INTENT(IN), DIMENSION(n,n) :: matrix    !Input matrix
   REAL, INTENT(OUT), DIMENSION(n,n) :: inverse    !Inverted matrix
-  
+
   LOGICAL :: FLAG = .TRUE.
   INTEGER :: i, j, k, l
   REAL :: m
   REAL, DIMENSION(n,2*n) :: augmatrix      !augmented matrix
 
-  !-------------------------------------------------------------------------------  
-  !Augment input matrix with an identity matrix
+  !-------------------------------------------------------------------------------
+  ! Augment input matrix with an identity matrix
   !-------------------------------------------------------------------------------
 
   DO i = 1, n
@@ -650,8 +638,8 @@ SUBROUTINE FINDInv(matrix, inverse, n, errorflag)
     END DO
   END DO
 
-  !-------------------------------------------------------------------------------  
-  !Reduce augmented matrix to upper traingular form
+  !-------------------------------------------------------------------------------
+  ! Reduce augmented matrix to upper traingular form
   !-------------------------------------------------------------------------------
 
   DO k =1, n-1
@@ -673,7 +661,7 @@ SUBROUTINE FINDInv(matrix, inverse, n, errorflag)
         ENDIF
       END DO
     ENDIF
-    DO j = k+1, n      
+    DO j = k+1, n
       m = augmatrix(j,k)/augmatrix(k,k)
       DO i = k, 2*n
         augmatrix(j,i) = augmatrix(j,i) - m*augmatrix(k,i)
@@ -681,8 +669,8 @@ SUBROUTINE FINDInv(matrix, inverse, n, errorflag)
     END DO
   END DO
 
-  !-------------------------------------------------------------------------------  
-  !Test for invertibility
+  !-------------------------------------------------------------------------------
+  ! Test for invertibility
   !-------------------------------------------------------------------------------
 
   DO i = 1, n
@@ -693,18 +681,18 @@ SUBROUTINE FINDInv(matrix, inverse, n, errorflag)
       return
     ENDIF
   END DO
-  !-------------------------------------------------------------------------------  
-  !Make diagonal elements as 1
+  !-------------------------------------------------------------------------------
+  ! Make diagonal elements 1
   !-------------------------------------------------------------------------------
 
   DO i = 1 , n
     m = augmatrix(i,i)
-    DO j = i , (2 * n)        
+    DO j = i , (2 * n)
          augmatrix(i,j) = (augmatrix(i,j) / m)
     END DO
   END DO
-  !-------------------------------------------------------------------------------  
-  !Reduced right side half of augmented matrix to identity matrix
+  !-------------------------------------------------------------------------------
+  ! Reduced right side half of augmented matrix to identity matrix
   !-------------------------------------------------------------------------------
 
   DO k = n-1, 1, -1
@@ -714,10 +702,10 @@ SUBROUTINE FINDInv(matrix, inverse, n, errorflag)
         augmatrix(i,j) = augmatrix(i,j) -augmatrix(k+1,j) * m
       END DO
     END DO
-  END DO        
+  END DO
 
-  !-------------------------------------------------------------------------------  
-  !store answer
+  !-------------------------------------------------------------------------------
+  ! Store results
   !-------------------------------------------------------------------------------
 
   DO i =1, n
@@ -744,10 +732,10 @@ SUBROUTINE detrend(x, y, trend, perturb, N)
 
   A = 0; B = 0; E = 0; F = 0
   DO i=1,N
-    A = A + x(i)*x(i) 
-    B = B + x(i)              
-    E = E + x(i)*y(i) 
-    F = F + y(i)              
+    A = A + x(i)*x(i)
+    B = B + x(i)
+    E = E + x(i)*y(i)
+    F = F + y(i)
   END DO
 
   C = B
@@ -868,7 +856,7 @@ SUBROUTINE write_to_file_no_flag(fid, flux_record)
 
   IF (flux_record%UST == -999) THEN
     WRITE(ust_char, "(I)") INT(flux_record%UST)
-  ELSE  
+  ELSE
     WRITE(ust_char, "(F10.3)") flux_record%UST
   END IF
 
@@ -1003,7 +991,6 @@ SUBROUTINE read_pressure(Precord, time, P)
       END IF
     END IF
   END DO
-
 
   P = P/REAL(counter)
 

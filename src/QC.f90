@@ -22,14 +22,14 @@ MODULE QC
   REAL, PARAMETER :: SKEWNESS_THRESHOLD = 3.0, KURTOSIS_THRESHOLD = 5.0
   REAL, PARAMETER :: DISCONTINUITIES_THRESHOLD = 3.0
   REAL, PARAMETER :: NONSTATIONARITY_THRESHOLD = 0.3
-  
+
 
 CONTAINS
 
   SUBROUTINE instrument(record, INSTRUMENT_FLAG, flux_record)
 
   !-------------------------------------------------------------------------------
-  ! If available records for current time period is less than a threshold, or is 
+  ! If available records for current time period is less than a threshold, or is
   ! more than 18000, a flag is placed
   !-------------------------------------------------------------------------------
 
@@ -53,8 +53,8 @@ CONTAINS
   SUBROUTINE spikes(record, SPIKES_FLAG, flux_record)
 
     !-------------------------------------------------------------------------------
-    ! Quality controal
-    ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+    ! Quality control
+    ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
     ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
     !-------------------------------------------------------------------------------
 
@@ -80,8 +80,8 @@ CONTAINS
 
   SUBROUTINE despike(time, rawdata, record_no, SPIKES_FLAG, spikes_par)
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ CONTAINS
 
     INTEGER :: record_no
     REAL :: rawdata(record_no), time(record_no)
-    INTEGER :: L1, window_starter 
+    INTEGER :: L1, window_starter
     REAL,ALLOCATABLE :: window(:)
     REAL :: window_mean, window_sd
     REAL :: SD_THRESHOLD
@@ -177,8 +177,8 @@ CONTAINS
   SUBROUTINE check_amplitude_resolution(rawdata, record_no, AMPLITUDE_RESOLUTION_FLAG, amplitude_resolution_par)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -252,8 +252,8 @@ CONTAINS
 
   SUBROUTINE check_dropouts(rawdata, record_no, DROPOUTS_FLAG, dropouts_par, extreme_dropouts_par)
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -325,8 +325,8 @@ CONTAINS
   SUBROUTINE absolute_limits(record, ABSOLUTE_LIMITS_FLAG)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -362,8 +362,8 @@ CONTAINS
   SUBROUTINE higher_moment(record, HIGHER_MOMENT_FLAG, flux_record)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -388,8 +388,8 @@ CONTAINS
   SUBROUTINE check_higher_moment(rawdata, record_no, HIGHER_MOMENT_FLAG, skewness_par, kurtosis_par)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -422,8 +422,8 @@ CONTAINS
   SUBROUTINE discontinuities(record, DISCONTINUITIES_FLAG, flux_record)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -452,8 +452,8 @@ CONTAINS
 
   SUBROUTINE check_discontinuities(rawdata, record_no, DISCONTINUITIES_FLAG, haar_mean_par, haar_variance_par)
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -506,8 +506,8 @@ CONTAINS
   SUBROUTINE nonstationary(u, v, record_no, NONSTATIONARITY_FLAG, flux_record)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
-  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flx sampling problems
+  ! Quality control
+  ! (Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems
   ! for tower and aircraft data. J. Atmos. Oceanic tech., 14, 512-526)
   !-------------------------------------------------------------------------------
 
@@ -538,7 +538,7 @@ CONTAINS
   SUBROUTINE SEB(rawtime, flux_record, RN_FLAG)
 
   !-------------------------------------------------------------------------------
-  ! Quality controal
+  ! Quality control
   ! Constrain surface heat fluxes using net radiation measurements
   !-------------------------------------------------------------------------------
 
