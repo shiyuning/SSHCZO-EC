@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from quality_control import quality_control
-from unit_vector_k import unit_vector_k
+from unit_vectors import unit_vector_k, unit_vector_ij
 from calculate_fluxes import calculate_fluxes
-from write_csv import *
+from write_csv import initialize_csv_files, write_csv_files
 from site_parameters import *
-
 
 def get_pressure(start, end, df):
     """Get average air pressure for the averaging time period
@@ -18,9 +16,9 @@ def get_pressure(start, end, df):
 
     if len(sub_df) == 0:
         print('  No pressure data available')
-        return None
+        return None, None
 
-    return sub_df[PRESSURE].mean()
+    return sub_df[PRESSURE].mean(), sub_df[TA].mean()
 
 
 def main(params):
@@ -47,8 +45,10 @@ def main(params):
         print('No data available')
         return
 
-    diag_file = f'{SITE}_{start_of_month.strftime("%Y-%m")}_flux_diag.csv'
-    flux_file = f'{SITE}_{start_of_month.strftime("%Y-%m")}_flux.csv'
+    if AVERAGING_PERIOD_MINUTES == 30.0:
+        resolution = 'HH'
+    diag_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}_diag.csv'
+    flux_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}.csv'
 
     initialize_csv_files(flux_file, diag_file)
 
@@ -64,44 +64,37 @@ def main(params):
         pres_df = pd.DataFrame()
         WPL = False
 
-    # Data file Diag configuration
-    #
-    # 11 | 10 |  9 |  8 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
-    #    CSAT3 flags    |    IRGA flags     |    AGC/6.25       |
-    # CSAT3:
-    # 9: lost trigger special case
-    # 10: no data special case
-    # 11: wrong CSAT3 embedded code special case
-    # 12: SDM error special case
-    # 13: NaN special case
-    #
-    # IRGA:
-    # 1000: chopper
-    # 0100: detector
-    # 0010: pll
-    # 0001: sync
-
     # Determine unit vector k of planar fit coordinate
     # (Lee, L., W. Massman, and B. Law, 2004: Handbook of Micrometeorology, Chapt 3, Section 3)
     # unit_k is unit vector parallel to new coordinate z axis
-    df = df[df['diag'] < 256]  # Remove bad CSAT3 data
-    unit_k, b0 = unit_vector_k(df[U], df[V], df[W])
+    unit_k = unit_vector_k(df[ANEMOMETER_FILTER][U], df[ANEMOMETER_FILTER][V], df[ANEMOMETER_FILTER][W])
 
     periods = pd.date_range(start_of_month,end_of_month,freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list()
-    for i in range(len(periods) - 1):
-        start = periods[i]
-        end = periods[i + 1]
-        sub_df = df[(df[TIME] >= start) & (df[TIME] < end) & (df['diag'] < 16)]
+    for k in range(len(periods) - 1):
+        [start, end] = [periods[k], periods[k + 1]]
+        print(f'\n{end.strftime("%Y-%m-%d %H:%M")}')
+
+        sub_df = df[(df[TIME] >= start) & (df[TIME] < end) & ANEMOMETER_FILTER(df) & IRGA_FILTER(df)]
         if len(sub_df) == 0:
-            continue
+            fluxes = {}
+            flags = {}
+        else:
+            # Determine unit vectors i and j of planar fit coordinate
+            unit_i, unit_j = unit_vector_ij(unit_k, sub_df[U], sub_df[V], sub_df[W])
 
-        print(f'\n{end.strftime("%Y-%m-%d %H:%M")} {len(sub_df)}')
+            # Quality control following Vickers and Mahrt (1997)
+            flags = quality_control(unit_i, unit_j, unit_k, sub_df)
 
-        flags = quality_control(unit_k, sub_df)
+            # Read pressure data for WPL correction
+            if WPL:
+                pressure_kpa, ta_c = get_pressure(start, end, pres_df)
+            else:
+                pressure_kpa = ta_c = None
 
-        pressure_kpa = get_pressure(start, end, pres_df) if WPL else np.nan
-        fluxes = calculate_fluxes(unit_k, pressure_kpa, sub_df)
+            # Calculate fluxes
+            fluxes = calculate_fluxes(unit_i, pressure_kpa, ta_c, sub_df)
 
+        write_csv_files(start, end, fluxes, flags, flux_file, diag_file)
 
 
 def _main():

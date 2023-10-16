@@ -23,7 +23,7 @@ QC_THRESHOLDS = {
 }
 SECONDS_IN_MINUTE = 60.0
 
-def quality_control(unit_k, df):
+def quality_control(unit_i, unit_j, unit_k, df):
     """Quality control for eddy covariance flux data
     Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems for tower and aircraft data.
     J. Atmos. Oceanic tech., 14, 512-526
@@ -39,6 +39,12 @@ def quality_control(unit_k, df):
     print('%-32s' % '  Spike fraction', end='')
     for var in [U, V, W, TS, CO2, H2O]: spikes(df, var, flags)
     print('')
+
+    # Rotate to the natural wind coordinate system after de-spiking
+    u = df[U] * unit_i[0] + df[V] * unit_i[1] + df[W] * unit_i[2]
+    v = df[U] * unit_j[0] + df[V] * unit_j[1] + df[W] * unit_j[2]
+    w = df[U] * unit_k[0] + df[V] * unit_k[1] + df[W] * unit_k[2]
+    [df[U], df[V], df[W]] = [u, v, w]
 
     print('%-32s' % '  Empty bin ratio', end='')
     for var in [U, V, W, TS, CO2, H2O]: amplitude_resolution(df, var, flags)
@@ -62,7 +68,7 @@ def quality_control(unit_k, df):
     for var in [U, V, W, TS, CO2, H2O]: discontinuities(df, var, flags)
     print('\n')
 
-    nonstationary(df, unit_k, flags)
+    nonstationary(df, flags)
     print()
 
     first = True
@@ -82,7 +88,7 @@ def instrument(df, flags):
     If available records for current time period is less than a threshold, or is more than 18000, a flag is placed
     """
 
-    ratio = float(len(df[df['diag'] < 16])) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ)
+    ratio = float(len(df)) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ)
     print(f'  Available data fraction: {ratio:.3f}\n')
     flags['instrument'] = 1 if (ratio < QC_THRESHOLDS['instrument'] or ratio > 1.0) else 0
 
@@ -157,7 +163,6 @@ def amplitude_resolution(df, var, flags):
     standard deviations and the range. When the number of empty bins in the discrete frequency distribution exceeds a
     critical threshold value, the record is hard flagged as a resolution problem.
     """
-
     L1 = 1000
     N_BINS = 100.0
 
@@ -221,8 +226,7 @@ def dropouts(df, var, flags):
         window_position += 250
 
     print('%20s' %(f'{dropout_ratio:.3f}, {extreme_dropout_ratio:.3f}'), end='')
-    flags[f'{var}_dropouts'] = 1 if (dropout_ratio > QC_THRESHOLDS['dropouts']) else 0
-    flags[f'{var}_extreme_dropouts'] = 1 if (extreme_dropout_ratio > QC_THRESHOLDS['extreme_dropouts']) else 0
+    flags[f'{var}_dropouts'] = 1 if (dropout_ratio > QC_THRESHOLDS['dropouts'] or extreme_dropout_ratio > QC_THRESHOLDS['extreme_dropouts']) else 0
 
 
 def absolute_limits(df, flags):
@@ -231,28 +235,27 @@ def absolute_limits(df, flags):
     the record to some fixed limits considered unphysical.
     """
     print('%20s' %(f'[{df[U].min():.3f}, {df[U].max():.3f}]'), end='')
-    flags['Ux_absolute_limits'] = 1 if any(abs(df[U]) > 30.0) else 0
+    flags[f'{U}_absolute_limits'] = 1 if any(abs(df[U]) > 30.0) else 0
 
     print('%20s' %(f'[{df[V].min():.3f}, {df[V].max():.3f}]'), end='')
-    flags['Uy_absolute_limits'] = 1 if any(abs(df[V]) > 30.0) else 0
+    flags[f'{V}_absolute_limits'] = 1 if any(abs(df[V]) > 30.0) else 0
 
     print('%20s' %(f'[{df[W].min():.3f}, {df[W].max():.3f}]'), end='')
-    flags['Uz_absolute_limits'] = 1 if any(abs(df[W]) > 10.0) else 0
+    flags[f'{W}_absolute_limits'] = 1 if any(abs(df[W]) > 10.0) else 0
 
     print('%20s' %(f'[{df[TS].min():.2f}, {df[TS].max():.2f}]'), end='')
-    flags['Ts_absolute_limits'] = 1 if any(df[TS] > 60.0) or any(df[TS] < -50.0) or np.ptp(df[TS]) > 10.0 else 0
+    flags[f'{TS}_absolute_limits'] = 1 if any(df[TS] > 60.0) or any(df[TS] < -50.0) or np.ptp(df[TS]) > 10.0 else 0
 
     print('%20s' %(f'[{df[CO2].min():.2f}, {df[CO2].max():.2f}]'), end='')
-    flags['co2_absolute_limits'] = 1 if any(df[CO2] > 950.0) or any(df[CO2] < 550.0) or np.ptp(df[CO2]) > 120.0 else 0
+    flags[f'{CO2}_absolute_limits'] = 1 if any(df[CO2] > 950.0) or any(df[CO2] < 550.0) or np.ptp(df[CO2]) > 120.0 else 0
 
     print('%20s' %(f'[{df[H2O].min():.2f}, {df[H2O].max():.2f}]'), end='')
-    flags['h2o_absolute_limits'] = 1 if any(df[H2O] > 35.0) or any(df[H2O] < 2.5) or np.ptp(df[H2O]) > 8.0 else 0
+    flags[f'{H2O}_absolute_limits'] = 1 if any(df[H2O] > 35.0) or any(df[H2O] < 2.5) or np.ptp(df[H2O]) > 8.0 else 0
 
 
 def detrend(df, var):
     """Linear de-trend
     """
-
     time_array = df[TIME].values.astype(float) / 1.0E9 # Convert to seconds
     time_array -= time_array[0]
 
@@ -272,13 +275,9 @@ def higher_moment_statistics(df, var, flags):
 
     print('%20s' %(f'{m3:.3f}, {m4:.3f}'), end='')
 
-    if abs(m3) > QC_THRESHOLDS['skewness']:
-        df[f'{var}_skewness'] = 1
-
-    if abs(m4 - 4.5) > QC_THRESHOLDS['kurtosis']:
-        # The range of kurtosis is (1, 8) in Vickers and Mahrt (1997). It is equivalent to having (kurtosis - 4.5) in
-        # the range (-3.5, 3.5) in this implementation.
-        df[f'{var}_kurtosis'] = 1
+    # The range of kurtosis is (1, 8) in Vickers and Mahrt (1997). It is equivalent to having (kurtosis - 4.5) in the
+    # range (-3.5, 3.5) in this implementation.
+    flags[f'{var}_higher_moments'] = 1 if (abs(m3) > QC_THRESHOLDS['skewness'] or abs(m4 - 4.5) > QC_THRESHOLDS['kurtosis']) else 0
 
 
 def discontinuities(df, var, flags):
@@ -290,10 +289,8 @@ def discontinuities(df, var, flags):
     and then compute the difference normalized by the variance over the entire record. The record is hard flagged if the
     absolute value of any single normalized transform exceeds 3 and soft flagged at 2.
     """
-
     L1_SECONDS = 300
     L1 = min(int(L1_SECONDS * FREQUENCY_HZ), len(df))
-
 
     record_std = np.nanstd(df[var])
     record_range = np.ptp(df[var])
@@ -322,7 +319,7 @@ def discontinuities(df, var, flags):
     flags[f'{var}_discontinuities'] = 1 if (haar_mean_max > QC_THRESHOLDS['discontinuities'] or haar_variance_max > QC_THRESHOLDS['discontinuities']) else 0
 
 
-def nonstationary(df, unit_k, flags):
+def nonstationary(df, flags):
     """Identify nonstaionarity of horizontal wind
     The wind speed reduction is defined as the ratio of the speed of the vector averaged wind to the averaged
     instantaneous speed. When this ratio falls below 0.9, there is some cancellation in the vector average of the wind
@@ -340,33 +337,25 @@ def nonstationary(df, unit_k, flags):
     wind_speed_reduction = vector_average / instant_average
 
     print(f'  Wind speed reduction: {wind_speed_reduction:.3f}')
-    flags['wind_speed_reduction'] = 1 if (wind_speed_reduction < QC_THRESHOLDS['wind_speed_reduction']) else 0
 
     # Relative nonstationarity
-    ## Calculate alongwind and crosswind components
-    unit_j = np.cross(unit_k, [df[U].mean(), df[V].mean(), df[W].mean()])
-    unit_j /= np.linalg.norm(unit_j)
-    unit_i = np.cross(unit_j, unit_k)
-
-    u = df[U] * unit_i[0] + df[V] * unit_i[1] + df[W] * unit_i[2]
-    v = df[U] * unit_j[0] + df[V] * unit_j[1] + df[W] * unit_j[2]
-
     time_array = df[TIME].values.astype(float) / 1.0E9 # Convert to seconds
     time_array -= time_array[0]
-    su = np.polyfit(time_array, u, 1)
+    su = np.polyfit(time_array, df[U], 1)
     du = su[0] * (time_array[-1] - time_array[0])
-    sv = np.polyfit(time_array, v, 1)
+    sv = np.polyfit(time_array, df[V], 1)
     dv = sv[0] * (time_array[-1] - time_array[0])
 
-    rnu = du / np.mean(u)
-    rnv = dv / np.mean(u)
-    rns = math.sqrt(du * du + dv * dv) / np.mean(u)
+    rnu = du / np.mean(df[U])
+    rnv = dv / np.mean(df[U])
+    rns = math.sqrt(du * du + dv * dv) / np.mean(df[U])
 
     print(f'  Alongwind relative nonstationarity: {rnu:.3f}')
     print(f'  Crosswind relative nonstationarity: {rnv:.3f}')
     print(f'  Relative nonstationarity: {rns:.3f}')
 
-    if (rnu > QC_THRESHOLDS['relative_nonstationarity'] or
+    flags['nonstationary'] = 1 if (
+        rnu > QC_THRESHOLDS['relative_nonstationarity'] or
         rnv > QC_THRESHOLDS['relative_nonstationarity'] or
-        rns > QC_THRESHOLDS['relative_nonstationarity']):
-        flags['relative_nonstationarity'] = 1
+        rns > QC_THRESHOLDS['relative_nonstationarity'] or
+        wind_speed_reduction < QC_THRESHOLDS['wind_speed_reduction']) else 0
