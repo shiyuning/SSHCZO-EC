@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import kurtosis, skew
 from itertools import groupby
+from operator import itemgetter
 from site_parameters import *
 
 # Thresholds for quality control
@@ -118,13 +119,12 @@ def spikes(df, var, flags):
             sub_df = df.loc[window_position:window_position + L1, :]
             spike_filter = abs(sub_df[var] - np.nanmean(sub_df[var])) > std_threshold * np.nanstd(sub_df[var])
             if any(spike_filter):
-                # Filter out consecutive spikes
-                groups = [(k, sum(1 for _ in g)) for k, g in groupby(spike_filter)]
-                cursor = 0
-                for k, l in groups:
-                    if k and l >= CONSECUTIVE_SPIKES:
-                        spike_filter[cursor:cursor + l - 1] = False
-                    cursor += l
+                ## Filter out consecutive spikes
+                consecutive = [list(map(itemgetter(1), g))
+                               for _, g in groupby(enumerate(sub_df.index[spike_filter].tolist()), lambda x: x[0] - x[1])]
+                for c in consecutive:
+                    if len(c) > CONSECUTIVE_SPIKES:
+                        spike_filter.loc[c[0]:c[-1]] = False
 
             if any(spike_filter):
                 # Replace spikes with linear interpolation
