@@ -46,12 +46,8 @@ def quality_control(unit_i, unit_j, unit_k, df):
     w = df[U] * unit_k[0] + df[V] * unit_k[1] + df[W] * unit_k[2]
     [df[U], df[V], df[W]] = [u, v, w]
 
-    print('%-32s' % '  Empty bin ratio', end='')
-    for var in [U, V, W, TS, CO2, H2O]: amplitude_resolution(df, var, flags)
-    print()
-
-    print('%-32s' % '  Dropouts, extreme dropouts', end='')
-    for var in [U, V, W, TS, CO2, H2O]: dropouts(df, var, flags)
+    print('%-32s' % '  Empty bin ratio, dropouts', end='')
+    for var in [U, V, W, TS, CO2, H2O]: amplitude_resolution_dropouts(df, var, flags)
     print()
 
     print('%-32s' % '  Range', end='')
@@ -149,19 +145,26 @@ def spikes(df, var, flags):
             pass_spikes = []
 
 
-def amplitude_resolution(df, var, flags):
-    """Detect resolution problems
-    A problem is detected by computing a series of discrete frequency distributions for half-overlapping windows of
-    length 1000 data points. These windows move one-half the window width at a time through the series. For each window
-    position, the number of bins is set to 100 and the interval for the distribution is taken as the smaller of seven
-    standard deviations and the range. When the number of empty bins in the discrete frequency distribution exceeds a
-    critical threshold value, the record is hard flagged as a resolution problem.
+def amplitude_resolution_dropouts(df, var, flags):
+    """Detect resolution problems and dropouts
+    An amplitude resolution problem is detected by computing a series of discrete frequency distributions for half-
+    overlapping windows of length 1000 data points. These windows move one-half the window width at a time through the
+    series. For each window position, the number of bins is set to 100 and the interval for the distribution is taken as
+    the smaller of seven standard deviations and the range. When the number of empty bins in the discrete frequency
+    distribution exceeds a critical threshold value, the record is hard flagged as a resolution problem.
+
+    Dropouts are identified using the same window and frequency distributions used for the resolution problem.
+    Consecutive points that fall into the same bin of the frequency distribution are tentatively identified as dropouts.
+    When the total number of dropouts in the record exceeds a threshold value, the record is flagged for dropouts.
     """
     L1 = 1000
     N_BINS = 100.0
 
     L1 = min(L1, len(df))
     empty_bins = 0
+    window_position = 0
+    dropout_ratio = 0
+    extreme_dropout_ratio = 0
     window_position = 0
 
     while (window_position + L1 <= len(df)):
@@ -178,50 +181,19 @@ def amplitude_resolution(df, var, flags):
         hist, _ = np.histogram(sub_df, bins=bin_edges)
         empty_bins = max(empty_bins, float(np.count_nonzero(hist==0)) / N_BINS)
 
-        window_position += L1 / 2
-
-    print('%20.3f' %(empty_bins), end='')
-    flags[f'{var}_resolution'] = 1 if (empty_bins > QC_THRESHOLDS['empty_bins'])  else 0
-
-
-def dropouts(df, var, flags):
-    """Detect dropouts
-    Dropouts are identified using the same window and frequency distributions used for the resolution problem.
-    Consecutive points that fall into the same bin of the frequency distribution are tentatively identified as dropouts.
-    When the total number of dropouts in the record exceeds a threshold value, the record is flagged for dropouts.
-    """
-    L1 = 1000
-    N_BINS = 100.0
-
-    L1 = min(L1, len(df))
-    dropout_ratio = 0
-    extreme_dropout_ratio = 0
-    window_position = 0
-
-    while (window_position + L1 <= len(df)):
-        sub_df = df.loc[window_position:window_position + L1, var]
-        window_mean = np.nanmean(sub_df)
-        window_std = np.nanstd(sub_df)
-        distribution = min(7.0 * window_std, np.ptp(sub_df))
-        bin_edges = np.arange(
-            window_mean - distribution / 2.0,
-            window_mean + distribution / 2.0 + distribution / N_BINS,
-            distribution / N_BINS,
-        )
-
         #https://stackoverflow.com/questions/6352425/whats-the-most-pythonic-way-to-identify-consecutive-duplicates-in-a-list
         bins = np.digitize(sub_df, bin_edges)
         grouped_bins = [(k, sum(1 for _ in g)) for k, g in groupby(bins)]
 
         max_dropouts = max(grouped_bins, key=lambda x: x[1])
-
         dropout_ratio = max(dropout_ratio, float(max_dropouts[1]) / float(len(df)))
         if  (max_dropouts[0] < 10 or max_dropouts[0] > 90):
             extreme_dropout_ratio = max(extreme_dropout_ratio, float(max_dropouts[1]) / float(len(df)))
 
         window_position += L1 / 2
 
-    print('%20s' %(f'{dropout_ratio:.3f}, {extreme_dropout_ratio:.3f}'), end='')
+    print('%20s' %(f'{empty_bins:.3f}, {dropout_ratio:.3f}({extreme_dropout_ratio:.3f})'), end='')
+    flags[f'{var}_resolution'] = 1 if (empty_bins > QC_THRESHOLDS['empty_bins'])  else 0
     flags[f'{var}_dropouts'] = 1 if (dropout_ratio > QC_THRESHOLDS['dropouts'] or extreme_dropout_ratio > QC_THRESHOLDS['extreme_dropouts']) else 0
 
 
@@ -288,20 +260,19 @@ def discontinuities(df, var, flags):
     L1_SECONDS = 300
     L1 = min(int(L1_SECONDS * FREQUENCY_HZ), len(df))
 
-    record_std = np.nanstd(df[var])
+    record_std = np.std(df[var])
     record_range = np.ptp(df[var])
     normal = min(record_std, record_range / 4.0)
 
     window_position = 0
-
     haar_mean_max = 0
     haar_variance_max = 0
 
     while (window_position + L1 <= len(df)):
         half_point = int(L1 / 2)
 
-        half1_mean = np.nanmean(df.loc[0:half_point, var])
-        half2_mean = np.nanmean(df.loc[half_point:L1, var])
+        half1_mean = np.mean(df.loc[0:half_point, var])
+        half2_mean = np.mean(df.loc[half_point:L1, var])
 
         half1_variance = np.var(df.loc[0:half_point, var])
         half2_variance = np.var(df.loc[half_point:L1, var])
@@ -309,7 +280,7 @@ def discontinuities(df, var, flags):
         haar_mean_max = max(haar_mean_max, abs((half2_mean - half1_mean) / normal))
         haar_variance_max = max(haar_variance_max, abs((half2_variance - half1_variance) / (record_std * record_std)))
 
-        window_position += 1
+        window_position += L1 / 4
 
     print('%20s' % (f'{haar_mean_max:.3f}, {haar_variance_max:.3f}'), end='')
     flags[f'{var}_discontinuities'] = 1 if (haar_mean_max > QC_THRESHOLDS['discontinuities'] or haar_variance_max > QC_THRESHOLDS['discontinuities']) else 0
