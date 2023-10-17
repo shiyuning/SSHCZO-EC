@@ -115,35 +115,27 @@ def spikes(df, var, flags):
 
     while True:
         while window_position + L1 <= len(df):
-            window_mean = np.nanmean(df.loc[window_position:window_position + L1, var])
-            window_std = np.nanstd(df.loc[window_position:window_position + L1, var])
+            sub_df = df.loc[window_position:window_position + L1, :]
+            spike_filter = abs(sub_df[var] - np.nanmean(sub_df[var])) > std_threshold * np.nanstd(sub_df[var])
+            if any(spike_filter):
+                # Filter out consecutive spikes
+                groups = [(k, sum(1 for _ in g)) for k, g in groupby(spike_filter)]
+                cursor = 0
+                for k, l in groups:
+                    if k and l >= CONSECUTIVE_SPIKES:
+                        spike_filter[cursor:cursor + l - 1] = False
+                    cursor += l
 
-            k0 = window_position + 1
-            while k0 < L1:
-                if abs(df.loc[k0, var] - window_mean) > std_threshold * window_std:
-                    for k in range(k0 + 1, L1):
-                        if abs(df.loc[k, var] - window_mean) < std_threshold * window_std: break
+            if any(spike_filter):
+                # Replace spikes with linear interpolation
+                sub_df.loc[spike_filter, var] = np.interp(sub_df.loc[spike_filter, TIME], sub_df.loc[~spike_filter, TIME], sub_df.loc[~spike_filter, var])
 
-                    if (df.loc[k, TIME] - df.loc[k0, TIME]).total_seconds() > CONSECUTIVE_SPIKES / FREQUENCY_HZ:
-                        # When four or more consecutive points are detected, they are not considered spikes
-                        pass
-                    else:
-                        # Replace spikes using linear interpolation between data points
-                        for kk in range(k0, k):
-                            n_spikes += 1
-                            if kk not in spike_ind: spike_ind.append(kk)
-                            df.loc[kk, var] = np.interp(
-                                (df.loc[kk, TIME] - df.loc[k0 - 1, TIME]).total_seconds(),
-                                [0, (df.loc[k, TIME] - df.loc[k0 - 1, TIME]).total_seconds()],
-                                [df.loc[k0 - 1, var], df.loc[k, var]]
-                            )
-                    k0 = k
-                else:
-                    k0 += 1
+                spike_ind += sub_df.index[spike_filter].tolist()
+                n_spikes += sum(spike_filter)
 
             window_position += 1
 
-        spike_ratio = float(len(spike_ind)) / float(len(df))
+        spike_ratio = float(len(np.unique(spike_ind))) / float(len(df))
         flags[f'{var}_spikes'] = 1 if (spike_ratio > QC_THRESHOLDS['spike']) else 0
 
         if n_spikes == 0:
@@ -215,7 +207,7 @@ def dropouts(df, var, flags):
 
         #https://stackoverflow.com/questions/6352425/whats-the-most-pythonic-way-to-identify-consecutive-duplicates-in-a-list
         bins = np.digitize(df.loc[window_position:window_position + L1, var], bin_edges)
-        grouped_bins = [(k, sum(1 for i in g)) for k, g in groupby(bins)]
+        grouped_bins = [(k, sum(1 for _ in g)) for k, g in groupby(bins)]
 
         max_dropouts = max(grouped_bins, key=lambda x: x[1])
 
