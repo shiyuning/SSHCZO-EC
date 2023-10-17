@@ -51,9 +51,10 @@ def write_csv_files(start, end, fluxes, flags, flux_file, diag_file):
                 flags[f'{var}_dropouts'] * 8 +
                 flags[f'{var}_absolute_limits'] * 16 +
                 flags[f'{var}_higher_moments'] * 32 +
-                flags[f'{var}_discontinuities'] * 64 +
-                flags['nonstationary'] * 128
+                flags[f'{var}_discontinuities'] * 64
             )
+            if var in [U, V, W]:
+                integrated_flags[flag] += flags['nonstationary'] * 128
 
     with open(diag_file, 'a') as f:
         f.write(','.join([ts_start, ts_end, *list(fluxes.values()), *[str(integrated_flags[flag]) for flag in integrated_flags]]) + '\n')

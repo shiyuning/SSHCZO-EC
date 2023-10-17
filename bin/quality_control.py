@@ -107,7 +107,8 @@ def spikes(df, var, flags):
     """
     CONSECUTIVE_SPIKES = 3
     L1_SECONDS = 300
-    std_threshold = 3.5
+    std_threshold = 4.5
+    threshold_increment = 0.1
     window_position = 0
     spike_ind = []
     n_spikes = 0
@@ -144,7 +145,8 @@ def spikes(df, var, flags):
         else:
             window_position = 0
             n_spikes = 0
-            std_threshold += 0.1
+            std_threshold += threshold_increment
+            threshold_increment += 0.1
 
 
 def amplitude_resolution(df, var, flags):
@@ -163,19 +165,20 @@ def amplitude_resolution(df, var, flags):
     window_position = 0
 
     while (window_position + L1 <= len(df)):
-        window_mean = np.nanmean(df.loc[window_position:window_position + L1, var])
-        window_std = np.nanstd(df.loc[window_position:window_position + L1, var])
-        distribution = min(7 * window_std, np.ptp(df.loc[window_position:window_position + L1, var]))
+        sub_df = df.loc[window_position:window_position + L1, var]
+        window_mean = np.nanmean(sub_df)
+        window_std = np.nanstd(sub_df)
+        distribution = min(7.0 * window_std, np.ptp(sub_df))
         bin_edges = np.arange(
             window_mean - distribution / 2.0,
             window_mean + distribution / 2.0 + distribution / N_BINS,
             distribution / N_BINS,
         )
 
-        hist, _ = np.histogram(df.loc[window_position:window_position + L1, var], bins=bin_edges)
+        hist, _ = np.histogram(sub_df, bins=bin_edges)
         empty_bins = max(empty_bins, float(np.count_nonzero(hist==0)) / N_BINS)
 
-        window_position += 250
+        window_position += L1 / 2
 
     print('%20.3f' %(empty_bins), end='')
     flags[f'{var}_resolution'] = 1 if (empty_bins > QC_THRESHOLDS['empty_bins'])  else 0
@@ -196,9 +199,10 @@ def dropouts(df, var, flags):
     window_position = 0
 
     while (window_position + L1 <= len(df)):
-        window_mean = np.nanmean(df.loc[window_position:window_position + L1, var])
-        window_std = np.nanstd(df.loc[window_position:window_position + L1, var])
-        distribution = min(7 * window_std, np.ptp(df.loc[window_position:window_position + L1, var]))
+        sub_df = df.loc[window_position:window_position + L1, var]
+        window_mean = np.nanmean(sub_df)
+        window_std = np.nanstd(sub_df)
+        distribution = min(7.0 * window_std, np.ptp(sub_df))
         bin_edges = np.arange(
             window_mean - distribution / 2.0,
             window_mean + distribution / 2.0 + distribution / N_BINS,
@@ -206,7 +210,7 @@ def dropouts(df, var, flags):
         )
 
         #https://stackoverflow.com/questions/6352425/whats-the-most-pythonic-way-to-identify-consecutive-duplicates-in-a-list
-        bins = np.digitize(df.loc[window_position:window_position + L1, var], bin_edges)
+        bins = np.digitize(sub_df, bin_edges)
         grouped_bins = [(k, sum(1 for _ in g)) for k, g in groupby(bins)]
 
         max_dropouts = max(grouped_bins, key=lambda x: x[1])
@@ -215,7 +219,7 @@ def dropouts(df, var, flags):
         if  (max_dropouts[0] < 10 or max_dropouts[0] > 90):
             extreme_dropout_ratio = max(extreme_dropout_ratio, float(max_dropouts[1]) / float(len(df)))
 
-        window_position += 250
+        window_position += L1 / 2
 
     print('%20s' %(f'{dropout_ratio:.3f}, {extreme_dropout_ratio:.3f}'), end='')
     flags[f'{var}_dropouts'] = 1 if (dropout_ratio > QC_THRESHOLDS['dropouts'] or extreme_dropout_ratio > QC_THRESHOLDS['extreme_dropouts']) else 0
