@@ -65,4 +65,4 @@ def write_csv_files(start, end, fluxes, flags, flux_file, diag_file):
                 break
 
     with open(flux_file, 'a') as f:
-        f.write(','.join([ts_start, ts_end, *list(fluxes.values()), *[str(integrated_flags[flag]) for flag in integrated_flags]]) + '\n')
+        f.write(','.join([ts_start, ts_end, *list(fluxes.values())]) + '\n')

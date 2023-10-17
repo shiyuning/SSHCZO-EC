@@ -74,7 +74,7 @@ def main(params):
         [start, end] = [periods[k], periods[k + 1]]
         print(f'\n{end.strftime("%Y-%m-%d %H:%M")}')
 
-        sub_df = df[(df[TIME] >= start) & (df[TIME] < end) & ANEMOMETER_FILTER(df) & IRGA_FILTER(df)]
+        sub_df = df[(df[TIME] >= start) & (df[TIME] < end) & ANEMOMETER_FILTER(df) & IRGA_FILTER(df)].copy().reset_index(drop=True)
         if len(sub_df) == 0:
             fluxes = {}
             flags = {}

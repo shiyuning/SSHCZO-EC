@@ -78,7 +78,7 @@ def quality_control(unit_i, unit_j, unit_k, df):
             if flags[flag] == 1:
                 print(f'{flag}' if first else f', {flag}', end='')
                 first = False
-    print('\n')
+        print('\n')
 
     return flags
 
