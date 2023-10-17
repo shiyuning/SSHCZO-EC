@@ -43,7 +43,7 @@ def main(params):
 
     if len(df) == 0:
         print('No data available')
-        return
+        exit()
 
     if AVERAGING_PERIOD_MINUTES == 30.0:
         resolution = 'HH'

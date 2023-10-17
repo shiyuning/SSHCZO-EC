@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import math
 import numpy as np
 import pandas as pd
@@ -107,46 +106,47 @@ def spikes(df, var, flags):
     """
     CONSECUTIVE_SPIKES = 3
     L1_SECONDS = 300
+    window_position = 0
     std_threshold = 4.5
     threshold_increment = 0.1
-    window_position = 0
-    spike_ind = []
-    n_spikes = 0
+    pass_spikes = []
+    all_spikes = []
 
     L1 = min(int(L1_SECONDS * FREQUENCY_HZ), len(df))
 
     while True:
         while window_position + L1 <= len(df):
             sub_df = df.loc[window_position:window_position + L1, :]
-            spike_filter = abs(sub_df[var] - np.nanmean(sub_df[var])) > std_threshold * np.nanstd(sub_df[var])
-            if any(spike_filter):
-                ## Filter out consecutive spikes
-                consecutive = [list(map(itemgetter(1), g))
-                               for _, g in groupby(enumerate(sub_df.index[spike_filter].tolist()), lambda x: x[0] - x[1])]
-                for c in consecutive:
-                    if len(c) > CONSECUTIVE_SPIKES:
-                        spike_filter.loc[c[0]:c[-1]] = False
-
-            if any(spike_filter):
-                # Replace spikes with linear interpolation
-                sub_df.loc[spike_filter, var] = np.interp(sub_df.loc[spike_filter, TIME], sub_df.loc[~spike_filter, TIME], sub_df.loc[~spike_filter, var])
-
-                spike_ind += sub_df.index[spike_filter].tolist()
-                n_spikes += sum(spike_filter)
-
+            pass_spikes += sub_df.index[abs(sub_df[var] - np.mean(sub_df[var])) > std_threshold * np.std(sub_df[var])].tolist()
             window_position += 1
 
-        spike_ratio = float(len(np.unique(spike_ind))) / float(len(df))
-        flags[f'{var}_spikes'] = 1 if (spike_ratio > QC_THRESHOLDS['spike']) else 0
+        pass_spikes = np.sort(np.unique(pass_spikes))
 
-        if n_spikes == 0:
+        if len(pass_spikes) > 0:
+            ## Filter out consecutive spikes
+            consecutive = [list(map(itemgetter(1), g)) for _, g in groupby(enumerate(pass_spikes), lambda x: x[0] - x[1])]
+            for c in consecutive:
+                if len(c) > CONSECUTIVE_SPIKES:
+                    for ind in c: pass_spikes = np.delete(pass_spikes, np.argwhere(pass_spikes == ind))
+
+        if len(pass_spikes) > 0:
+            all_spikes += pass_spikes.tolist()
+
+            # Replace spikes with linear interpolation
+            spike_filter = np.full(len(df), False)
+            spike_filter[pass_spikes] = True
+            df.loc[spike_filter, var] = np.interp(df.loc[spike_filter, TIME], df.loc[~spike_filter, TIME], df.loc[~spike_filter, var])
+
+        if len(pass_spikes) == 0:
+            spike_ratio = float(len(np.unique(all_spikes))) / float(len(df))
+            flags[f'{var}_spikes'] = 1 if (spike_ratio > QC_THRESHOLDS['spike']) else 0
             print('%20.3f' % (spike_ratio), end='')
             return
         else:
             window_position = 0
-            n_spikes = 0
             std_threshold += threshold_increment
             threshold_increment += 0.1
+            pass_spikes = []
 
 
 def amplitude_resolution(df, var, flags):
