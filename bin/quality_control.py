@@ -134,7 +134,7 @@ def spikes(df, var, flags):
                 if len(c) > CONSECUTIVE_SPIKES: consecutive_spikes += c
 
             if len(consecutive_spikes) > 0:
-                pass_spikes = np.delete(pass_spikes, c)
+                pass_spikes = np.delete(pass_spikes, consecutive_spikes)
 
         if len(pass_spikes) > 0:
             all_spikes += pass_spikes.tolist()
