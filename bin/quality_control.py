@@ -129,8 +129,12 @@ def spikes(df, var, flags):
         if len(pass_spikes) > 0:
             ## Filter out consecutive spikes
             consecutive = [list(map(itemgetter(0), g)) for _, g in groupby(enumerate(pass_spikes), lambda x: x[0] - x[1])]
+            consecutive_spikes = []
             for c in consecutive:
-                if len(c) > CONSECUTIVE_SPIKES: pass_spikes = np.delete(pass_spikes, c)
+                if len(c) > CONSECUTIVE_SPIKES: consecutive_spikes += c
+
+            if len(consecutive_spikes) > 0:
+                pass_spikes = np.delete(pass_spikes, c)
 
         if len(pass_spikes) > 0:
             all_spikes += pass_spikes.tolist()

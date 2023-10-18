@@ -25,7 +25,6 @@ def unit_vector_k(u, v, w):
     ])
     g = np.array([w_bar, uw_bar, vw_bar])
 
-    print(h, g)
     b = np.linalg.lstsq(h, g, rcond=None)[0]
 
     # Determine unit vector k
