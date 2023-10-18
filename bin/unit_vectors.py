@@ -5,14 +5,18 @@ def unit_vector_k(u, v, w):
     """Determines unit vectors
     Adapted from Lee, L., W. Massman, and B. Law, 2004: Handbook of Micrometeorology, Chapt 3, Section 9
     """
-    u_bar = np.mean(u)
-    v_bar = np.mean(v)
-    w_bar = np.mean(w)
-    uv_bar = np.mean(u * v)
-    uw_bar = np.mean(u * w)
-    vw_bar = np.mean(v * w)
-    u2_bar = np.mean(u * u)
-    v2_bar = np.mean(v * v)
+    u = u.values
+    v = v.values
+    w = w.values
+
+    u_bar = u.mean()
+    v_bar = v.mean()
+    w_bar = w.mean()
+    uv_bar = (u * v).mean()
+    uw_bar = (u * w).mean()
+    vw_bar = (v * w).mean()
+    u2_bar = (u * u).mean()
+    v2_bar = (v * v).mean()
 
     h = np.array([
         [1, u_bar, v_bar],
@@ -21,6 +25,7 @@ def unit_vector_k(u, v, w):
     ])
     g = np.array([w_bar, uw_bar, vw_bar])
 
+    print(h, g)
     b = np.linalg.lstsq(h, g, rcond=None)[0]
 
     # Determine unit vector k
@@ -36,9 +41,9 @@ def unit_vector_k(u, v, w):
 
 
 def unit_vector_ij(unit_k, u, v, w):
-    u_bar = np.mean(u)
-    v_bar = np.mean(v)
-    w_bar = np.mean(w)
+    u_bar = u.values.mean()
+    v_bar = v.values.mean()
+    w_bar = w.values.mean()
 
     unit_j = np.cross(unit_k, [u_bar, v_bar, w_bar])
     unit_j /= np.linalg.norm(unit_j)

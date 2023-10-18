@@ -18,7 +18,7 @@ def get_pressure(start, end, df):
         print('  No pressure data available')
         return None, None
 
-    return sub_df[PRESSURE].mean(), sub_df[TA].mean()
+    return sub_df[PRESSURE].values.mean(), sub_df[TA].values.mean()
 
 
 def main(params):
