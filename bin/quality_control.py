@@ -127,12 +127,12 @@ def spikes(df, var, flags):
         pass_spikes = np.sort(np.unique(pass_spikes))
 
         if len(pass_spikes) > 0:
-            ## Filter out consecutive spikes
-            consecutive = [list(map(itemgetter(0), g)) for _, g in groupby(enumerate(pass_spikes), lambda x: x[0] - x[1])]
+            # Filter out consecutive spikes
+            # df[TIME].values * 1E9 converts to seconds, and (df[TIME].values - df[TIME0].value) / 1E9 * FREQUENCY_HZ)
+            # should be equivalent to df.index, but the latter does not take into account the time gaps between records.
             consecutive_spikes = []
-            for c in consecutive:
+            for c in [list(map(itemgetter(0), g)) for _, g in groupby(enumerate((df.loc[pass_spikes, TIME].values.astype(int) - df.loc[0, TIME].value) / 1E9 * FREQUENCY_HZ), lambda x: x[0] - x[1])]:
                 if len(c) > CONSECUTIVE_SPIKES: consecutive_spikes += c
-
             if len(consecutive_spikes) > 0:
                 pass_spikes = np.delete(pass_spikes, consecutive_spikes)
 
