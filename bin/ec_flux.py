@@ -96,7 +96,7 @@ def main(params):
     periods = pd.date_range(start_of_month,end_of_month,freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list()
     for k in range(len(periods) - 1):
         [start, end] = [periods[k], periods[k + 1]]
-        #print(f'\n{end.strftime("%Y-%m-%d %H:%M")}')
+        print(f'\n{end.strftime("%Y-%m-%d %H:%M")}')
 
         sub_df = df[(df['time'] >= start) & (df['time'] < end) & ANEMOMETER_FILTER(df) & IRGA_FILTER(df)].copy().reset_index(drop=True)
         if len(sub_df) == 0:

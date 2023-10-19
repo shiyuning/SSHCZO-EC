@@ -82,7 +82,7 @@ def write_flux_file(diag_file, flux_file):
     diag_df[FLAGS] = diag_df.apply(lambda x: calculate_flags(x), axis=1, result_type='expand')
     diag_df[list(OUTPUT_VARIABLES.keys())] = diag_df.apply(lambda x: apply_flags(x), axis=1, result_type='expand', )
 
-    diag_df[['TIMESTAMP_START', 'TIMESTAMP_END', *list(OUTPUT_VARIABLES.keys())]].to_csv(flux_file, index=False)
+    diag_df[['TIMESTAMP_START', 'TIMESTAMP_END', *list(OUTPUT_VARIABLES.keys()), *FLAGS]].to_csv(flux_file, index=False)
 
 
 def _main():
