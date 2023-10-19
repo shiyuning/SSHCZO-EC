@@ -7,92 +7,65 @@ from itertools import groupby
 from operator import itemgetter
 from site_parameters import *
 
-# Thresholds for quality control
-QC_THRESHOLDS = {
-    'instrument': 0.95,
-    'spike': 0.03,                      # Vickers and Mahrt 1997 value 0.01
-    'empty_bins': 0.7,                  # Vickers and Mahrt 1997 value 0.7
-    'dropouts': 0.1,                    # Vickers and Mahrt 1997 value 0.1
-    'extreme_dropouts': 0.06,           # Vickers and Mahrt 1997 value 0.06
-    'skewness': 3.0,                    # Vickers and Mahrt 1997 value 2.0
-    'kurtosis': 3.5,                    # Vickers and Mahrt 1997 value 3.5
-    'discontinuities': 3.0,             # Vickers and Mahrt 1997 value 3.0
-    'wind_speed_reduction': 0.9,        # Vickers and Mahrt 1997 value 0.9
-    'relative_nonstationarity': 0.5     # Vickers and Mahrt 1997 value 0.5
-
-}
 SECONDS_IN_MINUTE = 60.0
-
+VARIABLES = ['u', 'v', 'w', 'tsonic', 'co2', 'h2o']
 
 def quality_control(unit_i, unit_j, unit_k, df):
     """Quality control for eddy covariance flux data
     Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems for tower and aircraft data.
     J. Atmos. Oceanic tech., 14, 512-526
     """
-    flags = {}
+    diagnostics = {}
 
-    instrument(df, flags)
+    diagnostics['instrument'] = instrument(df)
 
-    print('%-32s' % '  Diagnostics', end='')
-    for var in ['u', 'v', 'w', 'Ts', 'CO2', 'H2O']: print('%20s' % var, end='')
-    print()
-
-    print('%-32s' % '  Spike fraction', end='')
-    for var in [U, V, W, TS, CO2, H2O]: spikes(df, var, flags)
-    print()
+    for var in VARIABLES:
+        diagnostics[f'{var}_spikes'] = spikes(df, var)
 
     # Rotate to the natural wind coordinate system after de-spiking
-    _u = df[U].values
-    _v = df[V].values
-    _w = df[W].values
+    _u = df['u'].values
+    _v = df['v'].values
+    _w = df['w'].values
     u = _u * unit_i[0] + _v * unit_i[1] + _w * unit_i[2]
     v = _u * unit_j[0] + _v * unit_j[1] + _w * unit_j[2]
     w = _u * unit_k[0] + _v * unit_k[1] + _w * unit_k[2]
-    [df[U], df[V], df[W]] = [u, v, w]
+    [df['u'], df['v'], df['w']] = [u, v, w]
 
-    print('%-32s' % '  Empty bin ratio, dropouts', end='')
-    for var in [U, V, W, TS, CO2, H2O]: amplitude_resolution_dropouts(df, var, flags)
-    print()
+    for var in VARIABLES:
+        diagnostics[f'{var}_resolution'], diagnostics[f'{var}_dropouts'], diagnostics[f'{var}_extreme_dropouts'] = \
+            amplitude_resolution_dropouts(df, var)
 
-    print('%-32s' % '  Range', end='')
-    absolute_limits(df, flags)
-    print()
+    diagnostics['u_max'] = abs(df['u'].values).max()
+    diagnostics['v_max'] = abs(df['v'].values).max()
+    diagnostics['w_max'] = abs(df['w'].values).max()
+    diagnostics['tsonic_min'] = df['tsonic'].values.min()
+    diagnostics['tsonic_max'] = df['tsonic'].values.max()
+    diagnostics['co2_min'] = df['co2'].values.min()
+    diagnostics['co2_max'] = df['co2'].values.max()
+    diagnostics['h2o_min'] = df['h2o'].values.min()
+    diagnostics['h2o_max'] = df['h2o'].values.max()
 
-    print('%-32s' % '  Skewness, kurtosis', end='')
-    for var in [U, V, W, TS, CO2, H2O]:
+    for var in VARIABLES:
         detrend(df, var)
-        higher_moment_statistics(df, var, flags)
-    print()
+        diagnostics[f'{var}_skewness'], diagnostics[f'{var}_kurtosis'] = higher_moment_statistics(df, var)
 
-    print('%-32s' % '  Normalized Harr mean, variance', end='')
-    for var in [U, V, W, TS, CO2, H2O]: discontinuities(df, var, flags)
-    print('\n')
+    for var in VARIABLES:
+        diagnostics[f'{var}_haar_mean'], diagnostics[f'{var}_haar_variance'] = discontinuities(df, var)
 
-    nonstationary(df, flags)
-    print()
+    diagnostics['wind_speed_reduction'], diagnostics['rnu'], diagnostics['rnv'],  diagnostics['rns'] = \
+        nonstationary(df)
 
-    first = True
-    if any(flags.values()):
-        print('  Flags: ', end='')
-        for flag in flags:
-            if flags[flag] == 1:
-                print(f'{flag}' if first else f', {flag}', end='')
-                first = False
-        print('\n')
-
-    return flags
+    return diagnostics
 
 
-def instrument(df, flags):
+def instrument(df):
     """Instrument diagnostics
     If available records for current time period is less than a threshold, or is more than 18000, a flag is placed
     """
-    ratio = float(len(df)) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ)
-    print(f'  Available data fraction: {ratio:.3f}\n')
-    flags['instrument'] = 1 if (ratio < QC_THRESHOLDS['instrument'] or ratio > 1.0) else 0
+    return float(len(df)) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ)
 
 
-def spikes(df, var, flags):
+def spikes(df, var):
     """Detect and remove spikes
     The method computes the mean and standard deviation for a series of moving windows of length L1. The window moves
     one point at a time through the series. Any point in the window that is more than 3.5 standard deviations from the
@@ -131,7 +104,7 @@ def spikes(df, var, flags):
             # df[TIME].values * 1E9 converts to seconds, and (df[TIME].values - df[TIME0].value) / 1E9 * FREQUENCY_HZ)
             # should be equivalent to df.index, but the latter does not take into account the time gaps between records.
             consecutive_spikes = []
-            for c in [list(map(itemgetter(0), g)) for _, g in groupby(enumerate((df.loc[pass_spikes, TIME].values.astype(int) - df.loc[0, TIME].value) / 1E9 * FREQUENCY_HZ), lambda x: x[0] - x[1])]:
+            for c in [list(map(itemgetter(0), g)) for _, g in groupby(enumerate((df.loc[pass_spikes, 'time'].values.astype(int) - df.loc[0, 'time'].value) / 1E9 * FREQUENCY_HZ), lambda x: x[0] - x[1])]:
                 if len(c) > CONSECUTIVE_SPIKES: consecutive_spikes += c
             if len(consecutive_spikes) > 0:
                 pass_spikes = np.delete(pass_spikes, consecutive_spikes)
@@ -142,20 +115,17 @@ def spikes(df, var, flags):
             # Replace spikes with linear interpolation
             spike_filter = np.full(len(df), False)
             spike_filter[pass_spikes] = True
-            df.loc[spike_filter, var] = np.interp(df.loc[spike_filter, TIME].values.astype(float), df.loc[~spike_filter, TIME].values.astype(float), df.loc[~spike_filter, var].values)
+            df.loc[spike_filter, var] = np.interp(df.loc[spike_filter, 'time'].values.astype(float), df.loc[~spike_filter, 'time'].values.astype(float), df.loc[~spike_filter, var].values)
 
             window_position = 0
             std_threshold += threshold_increment
             threshold_increment += 0.1
             pass_spikes = []
         else:
-            spike_ratio = float(len(np.unique(all_spikes))) / float(len(df))
-            flags[f'{var}_spikes'] = 1 if (spike_ratio > QC_THRESHOLDS['spike']) else 0
-            print('%20.3f' % (spike_ratio), end='')
-            return
+            return float(len(np.unique(all_spikes))) / float(len(df))
 
 
-def amplitude_resolution_dropouts(df, var, flags):
+def amplitude_resolution_dropouts(df, var):
     """Detect resolution problems and dropouts
     An amplitude resolution problem is detected by computing a series of discrete frequency distributions for half-
     overlapping windows of length 1000 data points. These windows move one-half the window width at a time through the
@@ -201,45 +171,13 @@ def amplitude_resolution_dropouts(df, var, flags):
 
         window_position += L1 / 2
 
-    print('%20s' %(f'{empty_bins:.3f}, {dropout_ratio:.3f}({extreme_dropout_ratio:.3f})'), end='')
-    flags[f'{var}_resolution'] = 1 if (empty_bins > QC_THRESHOLDS['empty_bins'])  else 0
-    flags[f'{var}_dropouts'] = 1 if (dropout_ratio > QC_THRESHOLDS['dropouts'] or extreme_dropout_ratio > QC_THRESHOLDS['extreme_dropouts']) else 0
-
-
-def absolute_limits(df, flags):
-    """Detect unrealistic data out of their physical ranges
-    Unrealistic data are detected and hard flagged by simply comparing the minimum and maximum value of all points in
-    the record to some fixed limits considered unphysical.
-    """
-    u = df[U].values
-    print('%20s' %(f'[{u.min():.3f}, {u.max():.3f}]'), end='')
-    flags[f'{U}_absolute_limits'] = 1 if any(abs(u) > 30.0) else 0
-
-    v = df[V].values
-    print('%20s' %(f'[{v.min():.3f}, {v.max():.3f}]'), end='')
-    flags[f'{V}_absolute_limits'] = 1 if any(abs(v) > 30.0) else 0
-
-    w = df[W].values
-    print('%20s' %(f'[{w.min():.3f}, {w.max():.3f}]'), end='')
-    flags[f'{W}_absolute_limits'] = 1 if any(abs(w) > 10.0) else 0
-
-    ts = df[TS].values
-    print('%20s' %(f'[{ts.min():.2f}, {ts.max():.2f}]'), end='')
-    flags[f'{TS}_absolute_limits'] = 1 if any(ts > 60.0) or any(ts < -50.0) or np.ptp(ts) > 10.0 else 0
-
-    co2 = df[CO2].values
-    print('%20s' %(f'[{co2.min():.2f}, {co2.max():.2f}]'), end='')
-    flags[f'{CO2}_absolute_limits'] = 1 if any(co2 > 950.0) or any(co2 < 550.0) or np.ptp(co2) > 120.0 else 0
-
-    h2o = df[H2O].values
-    print('%20s' %(f'[{h2o.min():.2f}, {h2o.max():.2f}]'), end='')
-    flags[f'{H2O}_absolute_limits'] = 1 if any(h2o > 35.0) or any(h2o < 2.5) or np.ptp(h2o) > 8.0 else 0
+    return empty_bins, dropout_ratio, extreme_dropout_ratio
 
 
 def detrend(df, var):
     """Linear de-trend
     """
-    time_array = df[TIME].values.astype(float) / 1.0E9 # Convert to seconds
+    time_array = df['time'].values.astype(float) / 1.0E9 # Convert to seconds
     time_array -= time_array[0]
 
     s = np.polyfit(time_array, df[var].values, 1)
@@ -248,22 +186,15 @@ def detrend(df, var):
     df[f'{var}_fluct'] = df[var].values - trend
 
 
-def higher_moment_statistics(df, var, flags):
+def higher_moment_statistics(df, var):
     """Detect possible instrument or recording problems and physical but unusual behavior using higher-moment statistics
     The skewness and kurtosis of the fields are computed for the entire record. The record is hard flagged when the
     skewness is outside the range (-2, 2) or the kurtosis is outside the range (1, 8).
     """
-    m3 = skew(df[f'{var}_fluct'].values)
-    m4 = kurtosis(df[f'{var}_fluct'].values, fisher=False)
-
-    print('%20s' %(f'{m3:.3f}, {m4:.3f}'), end='')
-
-    # The range of kurtosis is (1, 8) in Vickers and Mahrt (1997). It is equivalent to having (kurtosis - 4.5) in the
-    # range (-3.5, 3.5) in this implementation.
-    flags[f'{var}_higher_moments'] = 1 if (abs(m3) > QC_THRESHOLDS['skewness'] or abs(m4 - 4.5) > QC_THRESHOLDS['kurtosis']) else 0
+    return skew(df[f'{var}_fluct'].values), kurtosis(df[f'{var}_fluct'].values, fisher=False)
 
 
-def discontinuities(df, var, flags):
+def discontinuities(df, var):
     """Detect discontinuities in the data using the Haar transform
     The transform is computed for a series of moving windows of width L1 and then normalized by the smaller of the
     standard deviation for the entire record and one-fourth the range for the entire record. The record is hard flagged
@@ -297,11 +228,10 @@ def discontinuities(df, var, flags):
 
         window_position += L1 / 4
 
-    print('%20s' % (f'{haar_mean_max:.3f}, {haar_variance_max:.3f}'), end='')
-    flags[f'{var}_discontinuities'] = 1 if (haar_mean_max > QC_THRESHOLDS['discontinuities'] or haar_variance_max > QC_THRESHOLDS['discontinuities']) else 0
+    return haar_mean_max, haar_variance_max
 
 
-def nonstationary(df, flags):
+def nonstationary(df):
     """Identify nonstaionarity of horizontal wind
     The wind speed reduction is defined as the ratio of the speed of the vector averaged wind to the averaged
     instantaneous speed. When this ratio falls below 0.9, there is some cancellation in the vector average of the wind
@@ -314,16 +244,14 @@ def nonstationary(df, flags):
     The flow is classified as nonstationary if RNu, RNv, or RNS > 0.50
     """
     # Wind speed reduction
-    u = df[U].values
-    v = df[V].values
+    u = df['u'].values
+    v = df['v'].values
     vector_average = math.sqrt(u.mean() * u.mean() + v.mean() * v.mean())
     instant_average = np.sqrt(u * u + v * v).mean()
     wind_speed_reduction = vector_average / instant_average
 
-    print(f'  Wind speed reduction: {wind_speed_reduction:.3f}')
-
     # Relative nonstationarity
-    time_array = df[TIME].values.astype(float) / 1.0E9 # Convert to seconds
+    time_array = df['time'].values.astype(float) / 1.0E9 # Convert to seconds
     time_array -= time_array[0]
     su = np.polyfit(time_array, u, 1)
     du = su[0] * (time_array[-1] - time_array[0])
@@ -334,12 +262,4 @@ def nonstationary(df, flags):
     rnv = dv / u.mean()
     rns = math.sqrt(du * du + dv * dv) / u.mean()
 
-    print(f'  Alongwind relative nonstationarity: {rnu:.3f}')
-    print(f'  Crosswind relative nonstationarity: {rnv:.3f}')
-    print(f'  Relative nonstationarity: {rns:.3f}')
-
-    flags['nonstationary'] = 1 if (
-        rnu > QC_THRESHOLDS['relative_nonstationarity'] or
-        rnv > QC_THRESHOLDS['relative_nonstationarity'] or
-        rns > QC_THRESHOLDS['relative_nonstationarity'] or
-        wind_speed_reduction < QC_THRESHOLDS['wind_speed_reduction']) else 0
+    return wind_speed_reduction, rnu, rnv, rns

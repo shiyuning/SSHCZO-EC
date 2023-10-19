@@ -6,19 +6,20 @@ from dateutil.relativedelta import relativedelta
 from quality_control import quality_control
 from unit_vectors import unit_vector_k, unit_vector_ij
 from calculate_fluxes import calculate_fluxes
-from write_csv import initialize_csv_files, write_csv_files
+from write_diag_csv import initialize_diag_file, write_diag_file
+from write_flux_csv import write_flux_file
 from site_parameters import *
 
 def get_pressure(start, end, df):
     """Get average air pressure for the averaging time period
     """
-    sub_df = df[(df[TIME] >= start) & (df[TIME] < end)]
+    sub_df = df[(df['time'] >= start) & (df['time'] < end)]
 
     if len(sub_df) == 0:
         print('  No pressure data available')
         return None, None
 
-    return sub_df[PRESSURE].values.mean(), sub_df[TA].values.mean()
+    return sub_df['pressure'].values.mean(), sub_df['tair'].values.mean()
 
 
 def main(params):
@@ -38,8 +39,24 @@ def main(params):
             comment=COMMENT,
         )
         df = pd.concat([df, _df], ignore_index=True)
-    df[TIME] = pd.to_datetime(df[TIME])
-    df = df[(df[TIME] >= start_of_month) & (df[TIME] < end_of_month)]
+    # Rename columns to standard names
+    df = df.rename(columns={
+        TIME: 'time',
+        U: 'u',
+        V: 'v',
+        W: 'w',
+        T_SONIC: 'tsonic',
+        CO2: 'co2',
+        H2O: 'h2o',
+    })
+    df['u'] = df['u'].map(lambda x: wind_speed_m_per_s(x))
+    df['v'] = df['v'].map(lambda x: wind_speed_m_per_s(x))
+    df['w'] = df['w'].map(lambda x: wind_speed_m_per_s(x))
+    df['tsonic'] = df['tsonic'].map(lambda x: tsonic_celsius(x))
+    df['h2o'] = df['h2o'].map(lambda x: h2o_mg_per_m3(x))
+    df['co2'] = df['co2'].map(lambda x: co2_g_per_m3(x))
+    df['time'] = pd.to_datetime(df['time'])
+    df = df[(df['time'] >= start_of_month) & (df['time'] < end_of_month)]
 
     if len(df) == 0:
         print('No data available')
@@ -50,7 +67,7 @@ def main(params):
     diag_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}_diag.csv'
     flux_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}.csv'
 
-    initialize_csv_files(flux_file, diag_file)
+    initialize_diag_file(diag_file)
 
     if pres_file:
         WPL = True
@@ -59,7 +76,14 @@ def main(params):
             skiprows=PRESSURE_SKIP_ROWS,
             comment=PRESSURE_COMMENT,
         )
-        pres_df[PRESSURE_TIME] = pd.to_datetime(pres_df[PRESSURE_TIME])
+        pres_df = pres_df.rename(columns={
+            PRESSURE_TIME: 'time',
+            PRESSURE: 'pressure',
+            T_AIR: 'tair',
+        })
+        pres_df['pressure'] = pres_df['pressure'].map(lambda x: pressure_pa(x))
+        pres_df['tair'] = pres_df['tair'].map(lambda x: tair_celsius(x))
+        pres_df['time'] = pd.to_datetime(pres_df['time'])
     else:
         pres_df = pd.DataFrame()
         WPL = False
@@ -67,23 +91,23 @@ def main(params):
     # Determine unit vector k of planar fit coordinate
     # (Lee, L., W. Massman, and B. Law, 2004: Handbook of Micrometeorology, Chapt 3, Section 3)
     # unit_k is unit vector parallel to new coordinate z axis
-    unit_k = unit_vector_k(df[ANEMOMETER_FILTER][U], df[ANEMOMETER_FILTER][V], df[ANEMOMETER_FILTER][W])
+    unit_k = unit_vector_k(df[ANEMOMETER_FILTER]['u'], df[ANEMOMETER_FILTER]['v'], df[ANEMOMETER_FILTER]['w'])
 
     periods = pd.date_range(start_of_month,end_of_month,freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list()
     for k in range(len(periods) - 1):
         [start, end] = [periods[k], periods[k + 1]]
-        print(f'\n{end.strftime("%Y-%m-%d %H:%M")}')
+        #print(f'\n{end.strftime("%Y-%m-%d %H:%M")}')
 
-        sub_df = df[(df[TIME] >= start) & (df[TIME] < end) & ANEMOMETER_FILTER(df) & IRGA_FILTER(df)].copy().reset_index(drop=True)
+        sub_df = df[(df['time'] >= start) & (df['time'] < end) & ANEMOMETER_FILTER(df) & IRGA_FILTER(df)].copy().reset_index(drop=True)
         if len(sub_df) == 0:
             fluxes = {}
-            flags = {}
+            diagnostics = {}
         else:
             # Determine unit vectors i and j of planar fit coordinate
-            unit_i, unit_j = unit_vector_ij(unit_k, sub_df[U], sub_df[V], sub_df[W])
+            unit_i, unit_j = unit_vector_ij(unit_k, sub_df['u'], sub_df['v'], sub_df['w'])
 
             # Quality control following Vickers and Mahrt (1997)
-            flags = quality_control(unit_i, unit_j, unit_k, sub_df)
+            diagnostics = quality_control(unit_i, unit_j, unit_k, sub_df)
 
             # Read pressure data for WPL correction
             if WPL:
@@ -94,7 +118,9 @@ def main(params):
             # Calculate fluxes
             fluxes = calculate_fluxes(unit_i, pressure_kpa, ta_c, sub_df)
 
-        write_csv_files(start, end, fluxes, flags, flux_file, diag_file)
+        write_diag_file(start, end, fluxes, diagnostics, diag_file)
+
+    write_flux_file(diag_file, flux_file)
 
 
 def _main():
