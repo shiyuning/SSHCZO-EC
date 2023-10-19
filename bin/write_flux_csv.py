@@ -66,12 +66,10 @@ def calculate_flags(row):
 def apply_flags(row):
     fluxes = {}
     for var in OUTPUT_VARIABLES:
-        if not OUTPUT_VARIABLES[var]['flag']:
-            fluxes[var]  = row[var]
-            continue
+        fluxes[var]  = row[var]
 
         for flag in OUTPUT_VARIABLES[var]['flag']:
-            fluxes[var] = BADVAL if (row[flag] != 0) else row[var]
+            if (row[flag] != 0): fluxes[var] = BADVAL
 
     return fluxes
 
