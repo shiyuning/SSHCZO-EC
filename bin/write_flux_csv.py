@@ -74,14 +74,17 @@ def apply_flags(row):
     return fluxes
 
 
-def write_flux_file(diag_file, flux_file):
+def write_flux_file(diag_file):
     diag_df = pd.read_csv(diag_file, dtype=str)
 
     diag_df[FLAGS] = diag_df.apply(lambda x: calculate_flags(x), axis=1, result_type='expand')
     diag_df[list(OUTPUT_VARIABLES.keys())] = diag_df.apply(lambda x: apply_flags(x), axis=1, result_type='expand', )
 
-    diag_df[['TIMESTAMP_START', 'TIMESTAMP_END', *list(OUTPUT_VARIABLES.keys()), *FLAGS]].to_csv(flux_file, index=False)
+    flux_file = diag_file.replace('_diag.csv', '.csv')
+    diag_df[['TIMESTAMP_START', 'TIMESTAMP_END', *list(OUTPUT_VARIABLES.keys())]].to_csv(flux_file, index=False)
 
+    flag_file = diag_file.replace('_diag.csv', '_flag.csv')
+    diag_df[['TIMESTAMP_START', 'TIMESTAMP_END', *FLAGS]].to_csv(flag_file, index=False)
 
 def _main():
     parser = argparse.ArgumentParser(description='Write flux data to csv')
@@ -98,9 +101,8 @@ def _main():
     if AVERAGING_PERIOD_MINUTES == 30.0:
         resolution = 'HH'
     diag_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}_diag.csv'
-    flux_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}.csv'
 
-    write_flux_file(diag_file, flux_file)
+    write_flux_file(diag_file)
 
 
 if __name__ == '__main__':

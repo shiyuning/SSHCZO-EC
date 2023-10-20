@@ -120,12 +120,13 @@ def main(params):
 
         write_diag_file(start, end, fluxes, diagnostics, diag_file)
 
-    write_flux_file(diag_file, flux_file)
+    write_flux_file(diag_file)
 
 
 def _main():
     parser = argparse.ArgumentParser(description='Process EC data')
     parser.add_argument(
+        '-m',
         '--month',
         required=True,
         type=lambda s: datetime.strptime(s, '%Y-%m'),

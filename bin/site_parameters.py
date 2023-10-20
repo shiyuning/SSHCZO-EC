@@ -72,8 +72,8 @@ QC_THRESHOLDS = {
     'dropouts': 0.1,                    # Vickers and Mahrt 1997 value 0.1
     'extreme_dropouts': 0.06,           # Vickers and Mahrt 1997 value 0.06
     'skewness': 3.0,                    # Vickers and Mahrt 1997 value 2.0
-    'kurtosis': 3.5,                    # Vickers and Mahrt 1997 value 3.5
+    'kurtosis': 4.5,                    # Vickers and Mahrt 1997 value 3.5
     'discontinuities': 3.0,             # Vickers and Mahrt 1997 value 3.0
-    'wind_speed_reduction': 0.9,        # Vickers and Mahrt 1997 value 0.9
-    'relative_nonstationarity': 0.5     # Vickers and Mahrt 1997 value 0.5
+    'wind_speed_reduction': 0.5,        # Vickers and Mahrt 1997 value 0.9
+    'relative_nonstationarity': 3.0     # Vickers and Mahrt 1997 value 0.5
 }
