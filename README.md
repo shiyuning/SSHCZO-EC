@@ -6,70 +6,48 @@ Contact: Yuning Shi [(Send Email)](mailto:yshi@psu.edu)
 
 ## INSTRUCTION
 
-1. Download the source files and the Makefile to your work directory. In your work directory, type `make all` to compile all executables. Three executables will be generated: `read_data`, `split_data`, and `calculate_flux`.
+The code should be run using Python version 3, and requires the `pandas` and `numpy` packages.
 
-2. Read raw data of a single month into one file:
-   When the `calculate_flux` program processes the flux data of a certain month, it searches the `Data/YYYY-MM/` directory for the `YYYY-MM.dat` file.
-   To produce the `YYYY-MM.dat` file, we must run the `read_data` executable first.
-   The syntax is:
+1. Define site-specific parameters:
 
+   Site-specific parameters should be defined in the `bin/site_parameters.py` file.
+   This includes site name, CSAT3 y-axis direction, instrument sampling frequency, data column names, quality control threshold values, etc.
+
+2. Process flux data of a single month:
+
+   The syntax for flux processing program is:
    ```shell
-   ./read_data YYYY-MM filename1 [filename2 ...]
+   python3 ./bin/ec_flux.py --month YYYY-MM --files filename1 [filename2 ...] [--WPL pressure_filename]
    ```
 
    **EXAMPLE:**
 
    If we want to process the data from May 2014, and the raw data come in from three files, `./incoming/EC_ts_data1.dat`, `./incoming/EC_ts_data2.dat`, and `./incoming/EC_ts_data3.dat`, we run:
-
    ```shell
-   ./read_data 2014-05 ./incoming/EC_ts_data1.dat ./incoming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat
+   python3 ./bin/ec_flux.py --month 2014-05 --files ./incoming/EC_ts_data1.dat ./incoming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat
    ```
-
-3. Split one month data into single days:
-   This step is optional. This should be executed after the previous step, if needed.
-   The syntax is:
-
-   ```shell
-   ./split_data YYYY-MM
-   ```
-
-4. Process flux data of a single month:
-   This is the core of the EC process.
-   When the code begins processing, it searches the `Data` directory for the `YYYY-MM.dat` file.
-   Make sure `read_data` has been executed. The syntax for flux processing program is:
-
-   ```shell
-   ./calculate_flux YYYY-MM [-WPL pressure_filename]
-   ```
-
    `-WPL` is an optional parameter.
    When the `-WPL` parameter is used, the Webb-Pearman-Leuning correction will be applied.
    The WPL correction, however, requires the surface pressure data.
    Therefore the path to the surface pressure records (i.e., the ten-minute tower top file) must be specified.
 
-   **EXAMPLE:**
+   For each month, three csv output files are generated.
+   The main flux file is named `<site>_<averaging period>_<start timestamp>_<end timestamp>.csv`.
+   For example, Shale Hills (Ameriflux site US-SSH) May 2014 30-min flux data file will be named `US-SSH_HH_201405010000_201406010000.csv`
+   Two diagnostic files will be generated along with the flux file.
+   A `*_diag.csv`, which contains all the diagnostic parameters, and a `*_flag.csv`, which contains the quality control flags.
 
-   If we want to process the data from May 2014 with WPL correction, and the ten-minute tower top file is located at `incoming/EC_ten_min_data.dat`, we run
+3. Reprocess using new quality control threshold values:
 
+   If different quality control threshold values need to be applied to change the filter of bad flux data, we don't have to reprocess everything.
+   Because the `*_diag.csv` files contain all the diagnostic parameters needed to flag the flux data, we only need to read the `*_diag.csv` file, apply new quality control threshold values, and generate new flux data files.
+   To do this, simply run:
    ```shell
-   ./calculate_flux 2014-05 -WPL ./incoming/EC_ten_min_data.dat
+   python3 ./bin/write_flux_csv.py --month YYYY-MM
    ```
 
-   **CAUTION:**
+   New `*_flag.csv` and main flux files will be generated for the specified month.
 
-   If you have problems reading pressure data, please check if the code and the data format match.
-
-   Current format of Pressure file (as of June 01, 2014) is below:
-
-   ```
-   "TIMESTAMP","RECORD","pressure_irga_mean","T_hmp_mean","T_hmp_current","RH_hmp_current","h2o_irga_mean","h2o_hmp_mean"
-   ```
-
-   Code in `calculate_flux.f90` reading these data:
-
-   ```Fortran
-   READ(600,*,IOSTAT = error) buffer, RECORD, P, T1, T2, RH, H2O1, H2O2
-   ```
 
 ## CSAT3 AND IRGA DIAGNOSTIC INFORMATION
 
