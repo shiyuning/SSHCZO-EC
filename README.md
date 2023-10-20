@@ -6,7 +6,7 @@ Contact: Yuning Shi [(Send Email)](mailto:yshi@psu.edu)
 
 ## INSTRUCTION
 
-The code should be run using Python version 3, and requires the Pandas and numpy packages.
+The code should be run using Python version 3, and requires the `pandas` and `numpy` packages.
 
 1. Define site-specific parameters:
 
