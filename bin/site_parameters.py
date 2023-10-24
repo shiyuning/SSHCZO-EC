@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Site specific parameters
-SITE = 'US-SSH'                         # Site name
+SITE = 'US-SSH'                     # Site name
 CSAT3_AZIMUTH = 199.0               # Direction between CSAT3 y axis and true north direction
 AVERAGING_PERIOD_MINUTES = 30.0     # Averaging period in minutes
 FREQUENCY_HZ = 10.0                 # Sampling frequency in Hz
@@ -50,9 +50,9 @@ ANEMOMETER_FILTER = lambda x: (x['diag'] & 3840) == 0   # 3840 = 1111 0000 0000
 IRGA_FILTER = lambda x: (x['diag'] & 240) == 0          # 240 = 0000 1111 0000
 
 # Name of columns in the pressure data file
-PRESSURE_TIME = 'TmStamp'
-PRESSURE = 'pressure_irga_mean'
-T_AIR = 'T_hmp_mean'
+PRESSURE_TIME = 'TmStamp'           # Time
+PRESSURE = 'pressure_irga_mean'     # Air pressure
+T_AIR = 'T_hmp_mean'                # Air temperature
 # Other parameters for the pressure data file
 PRESSURE_SKIP_ROWS = None           # Number of rows to skip in the data file (None for automatic detection. Do not skip the header line with column names)
 PRESSURE_COMMENT = '#'              # Comment line marker
@@ -67,13 +67,13 @@ def tair_celsius(t): return t
 # Thresholds for quality control
 QC_THRESHOLDS = {
     'instrument': 0.95,
-    'spike': 0.03,                      # Vickers and Mahrt 1997 value 0.01
-    'empty_bins': 0.7,                  # Vickers and Mahrt 1997 value 0.7
-    'dropouts': 0.1,                    # Vickers and Mahrt 1997 value 0.1
-    'extreme_dropouts': 0.06,           # Vickers and Mahrt 1997 value 0.06
-    'skewness': 3.0,                    # Vickers and Mahrt 1997 value 2.0
-    'kurtosis': 4.5,                    # Vickers and Mahrt 1997 value 3.5
-    'discontinuities': 3.0,             # Vickers and Mahrt 1997 value 3.0
-    'wind_speed_reduction': 0.5,        # Vickers and Mahrt 1997 value 0.9
-    'relative_nonstationarity': 3.0     # Vickers and Mahrt 1997 value 0.5
+    'spike': 0.03,                  # Vickers and Mahrt (1997) value 0.01
+    'empty_bins': 0.7,              # Vickers and Mahrt (1997) value 0.7
+    'dropouts': 0.1,                # Vickers and Mahrt (1997) value 0.1
+    'extreme_dropouts': 0.06,       # Vickers and Mahrt (1997) value 0.06
+    'skewness': 3.0,                # Vickers and Mahrt (1997) value 2.0
+    'kurtosis': 4.5,                # Vickers and Mahrt (1997) value 3.5
+    'discontinuities': 3.0,         # Vickers and Mahrt (1997) value 3.0
+    'wind_speed_reduction': 0.5,    # Vickers and Mahrt (1997) value 0.9
+    'relative_nonstationarity': 3.0 # Vickers and Mahrt (1997) value 0.5
 }

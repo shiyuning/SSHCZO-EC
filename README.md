@@ -48,17 +48,44 @@ The code should be run using Python version 3, and requires the `pandas` and `nu
 
    New `*_flag.csv` and main flux files will be generated for the specified month.
 
+### Site-specific parameters
 
-## CSAT3 AND IRGA DIAGNOSTIC INFORMATION
+The following site-specific parameters or functions can be defined in `site_parameters.py`.
 
-The diagnostic value in the 10-Hz data is a 12-bit integer.
+#### `SITE`
+This is the site name, which is used to name output csv files.
+
+#### `CSAT3_AZIMUTH`
+Direction between CSAT3 (or other anemometer) y-axis and true north direction. This parameter is being used for wind direction calculation.
+
+#### `AVERAGING_PERIOD_MINUTES`
+Eddy covariance flux averaging time period in minutes.
+
+#### `FREQUENCY_HZ`
+Eddy covariance data sampling frequency in Hz.
+
+#### Eddy covariance data file column names
+`TIME` is the name of the time column; `U` is the wind speed in x direction, `V` is the wind speed in y direction, `W` is the wind speed in z direction; `T_SONIC` is the sonic temperature; `H2O` is water vapor concentration; and `CO2` is the carbon dioxide concentration.
+
+#### Other parameters for eddy covariance data files
+To help read the eddy covariance data files, the `SKIP_ROW` and `COMMENT` parameters can be used. Both parameters are correspondent to the same parameters for the Python `pandas` [`read_csv`](https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html) function.
+
+#### Unit conversions
+To correctly calculate fluxes, we require wind speed in m s<sup>-1</sup>, sonic temperature in Celsius, water vapor in mg m<sup>-3</sup>, and carbon dioxide in g m<sup>-3</sup>. If the input is different from those units, the `wind_speed_m_per_s`, `tsonic_celcius`, `h2o_mg_per_m3`, and `co2_g_per_m3` functions can be used for unit conversion.
+For example, if the sonic temperature in the eddy covariance data files is in Kelvin, then we can define
+
+```Python
+def tsonic_celsiu(t): return t - 273.15
+```
+
+Bad data filters: Callable `ANEMOMETER_FILTER` and `IRGA_FILTER` can be defined to flag bad data from anemomters and gas analyzers.
+For example, at Shale Hills CZO, The diagnostic value in the 10-Hz data is a 12-bit integer.
 
 bit 11&nbsp;&nbsp;&nbsp;bit 10&nbsp;&nbsp;&nbsp;bit 9&nbsp;&nbsp;&nbsp;bit 8|bit 7&nbsp;&nbsp;&nbsp;bit 6&nbsp;&nbsp;&nbsp;bit 5&nbsp;&nbsp;&nbsp;bit 4|bit 3&nbsp;&nbsp;&nbsp;bit 2&nbsp;&nbsp;&nbsp;bit 1&nbsp;&nbsp;&nbsp;bit 0
 :--------------------------:|:------------------------:|:------------------------:
 CSAT3 flags|IRGA flags|AGC/6.25
 
-
-### CSAT3 flags
+**CSAT3 flags**
 
 * 1000: Difference in the speed of sound between the three non-orthogonal axes is greater than 2.360&nbsp;m&nbsp;s<sup>-1</sup>
 * 0100: Poor signal lock
@@ -70,17 +97,37 @@ CSAT3 flags|IRGA flags|AGC/6.25
 * 1100: SDM error special case
 * 1101: NaN special case
 
-### IRGA flags
+**IRGA flags**
 
 * 1000: chopper
 * 0100: detector
 * 0010: pll
 * 0001: sync
 
-### Automatic Gain Control (AGC) value
+**Automatic Gain Control (AGC) value**
 
 The automatic gain control (AGC) value indicates how dirty the sensor head windows are.
 Typical AGC values are 50-60%.
 As dirt accumulates on the sensor head windows the value of AGC will increase.
 Droplets on the window can also increase AGC value.
 The AGC value should be monitored and the LI-7500 optical windows should be cleaned when necessary (when the AGC value approaches 100%).
+
+Therefore, to filter out bad data from CSAT-3, we define
+```Python
+ANEMOMETER_FILTER = lambda x: (x['diag'] & 3840) == 0   # 3840 = 1111 0000 0000
+IRGA_FILTER = lambda x: (x['diag'] & 240) == 0          # 240 = 0000 1111 0000
+```
+
+#### Pressure data file column names
+`PRESSURE_TIME` is the name of the time column; `PRESSURE` is the air pressure, `T_AIR` is the air temperature.
+
+#### Other parameters for pressure data files
+Similar to eddy covariance data files, `PRESSURE_SKIP_ROWS` and `PRESSURE_COMMENT` parameters can be used.
+
+#### Unit conversions
+To correctly calculate fluxes, we require air pressure in Pascal, and air temperature in Celsius.
+If the input is different from those units, the `pressure_pa` and `tair_celsius` functions can be used for conversion.
+
+#### `QC_THRESHOLDS`
+These are the quality control diagnostic thresholds as defined in [Vickers and Mahrt (1997)](https://doi.org/10.1175/1520-0426(1997)014<0512:QCAFSP>2.0.CO;2).
+Please refer to the original paper for the definition of those thresholds.
