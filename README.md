@@ -131,3 +131,10 @@ If the input is different from those units, the `pressure_pa` and `tair_celsius`
 #### `QC_THRESHOLDS`
 These are the quality control diagnostic thresholds as defined in [Vickers and Mahrt (1997)](https://doi.org/10.1175/1520-0426(1997)014<0512:QCAFSP>2.0.CO;2).
 Please refer to the original paper for the definition of those thresholds.
+
+## References:
+Burba, G. and Anderson, D., 2010. *A brief practical guide to eddy covariance flux measurements: Principles and workflow examples for scientific and industrial applications*. Li-Cor Biosciences.
+
+Lee, X., Massman, W. and Law, B. eds., 2004. *Handbook of micrometeorology: A guide for surface flux measurement and analysis*. Springer Science & Business Media.
+
+Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems for tower and aircraft data. *Journal of Atmospheric and Oceanic Technology*, **14**, 512–526, [doi:10.1175/1520-0426(1997)014<0512:QCAFSP>2.0.CO;2](https://doi.org/10.1175/1520-0426(1997)014<0512:QCAFSP>2.0.CO;2).
