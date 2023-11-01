@@ -130,7 +130,7 @@ def main(params):
                 pressure_kpa = ta_c = None
 
             # Calculate fluxes
-            fluxes = calculate_fluxes(unit_i, pressure_kpa, ta_c, sub_df)
+            fluxes = calculate_fluxes(unit_i, pressure_kpa, ta_c, sub_df, diagnostics)
 
         write_diag_file(start, end, fluxes, diagnostics, diag_file)
 

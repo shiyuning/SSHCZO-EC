@@ -7,7 +7,7 @@ RD = 287.05
 LV = 2503000.0
 C_AIR = 1004.0
 
-def calculate_fluxes(unit_i, pressure_pa, tair_c, df):
+def calculate_fluxes(unit_i, pressure_pa, tair_c, df, diagnostics):
     if unit_i is None:
         eta = None
         ust = None
@@ -47,6 +47,8 @@ def calculate_fluxes(unit_i, pressure_pa, tair_c, df):
         sh0 = None
 
     if (pressure_pa is not None) and (tair_c is not None) and (len(df[ANEMOMETER_FILTER(df) & IRGA_FILTER(df)]) > 0):
+        diagnostics['wpl'] = True
+
         ta = tair_c + 273.15
         rho_v = df[IRGA_FILTER]['h2o'].values.mean() / 1000.0
         rho_c = df[IRGA_FILTER]['co2'].values.mean()
@@ -72,6 +74,8 @@ def calculate_fluxes(unit_i, pressure_pa, tair_c, df):
         print(f'  CO2 flux before WPL correction = {f0 * 1000.0 / 44.0:.2f} umol/m2/s')
         print(f'  CO2 flux after WPL correction = {fc * 1000.0 / 44.0:.2f} umol/m2/s')
     else:
+        diagnostics['wpl'] = False
+
         sh = sh0
         e = e0
         fc = f0

@@ -29,6 +29,7 @@ DIAGNOSTICS = [
     *[f'{str}_haar_mean' for str in VARIABLES],
     *[f'{str}_haar_variance' for str in VARIABLES],
     'wind_speed_reduction', 'rnu', 'rnv',  'rns',
+    'wpl',
 ]
 
 
@@ -54,7 +55,10 @@ def write_diag_file(start, end, fluxes, diagnostics, diag_file):
         for var in OUTPUT_VARIABLES:
             fluxes[var] = BADVAL if fluxes[var] is None else OUTPUT_VARIABLES[var]['format'].format(fluxes[var])
         for d in DIAGNOSTICS:
-            _diagnostics[d] = '{:.3f}'.format(diagnostics[d]) if diagnostics[d] is not None else BADVAL
+            if d == 'wpl':
+                _diagnostics[d] = '1' if diagnostics[d] else '0'
+            else:
+                _diagnostics[d] = '{:.3f}'.format(diagnostics[d]) if diagnostics[d] is not None else BADVAL
 
     with open(diag_file, 'a') as f:
         f.write(','.join([ts_start, ts_end, *list(fluxes.values()), *list(_diagnostics.values())]) + '\n')
