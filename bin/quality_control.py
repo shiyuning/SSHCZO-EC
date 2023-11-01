@@ -10,6 +10,15 @@ from site_parameters import *
 SECONDS_IN_MINUTE = 60.0
 VARIABLES = ['u', 'v', 'w', 'tsonic', 'co2', 'h2o']
 
+filter = {
+    'u': ANEMOMETER_FILTER,
+    'v': ANEMOMETER_FILTER,
+    'w': ANEMOMETER_FILTER,
+    'tsonic': ANEMOMETER_FILTER,
+    'co2': IRGA_FILTER,
+    'h2o': IRGA_FILTER,
+}
+
 def quality_control(unit_i, unit_j, unit_k, df):
     """Quality control for eddy covariance flux data
     Vickers, D., and L. Mahrt, 1997: Quality control and flux sampling problems for tower and aircraft data.
@@ -17,52 +26,73 @@ def quality_control(unit_i, unit_j, unit_k, df):
     """
     diagnostics = {}
 
-    diagnostics['instrument'] = instrument(df)
+    diagnostics['3dua'], diagnostics['irga'] = instrument(df)
 
     for var in VARIABLES:
-        diagnostics[f'{var}_spikes'] = spikes(df, var)
+        if len(df[filter[var]]) == 0:
+            diagnostics[f'{var}_spikes'] = None
+        else:
+            diagnostics[f'{var}_spikes'] = spikes(df[filter[var]], var)
 
     # Rotate to the natural wind coordinate system after de-spiking
-    _u = df['u'].values
-    _v = df['v'].values
-    _w = df['w'].values
-    u = _u * unit_i[0] + _v * unit_i[1] + _w * unit_i[2]
-    v = _u * unit_j[0] + _v * unit_j[1] + _w * unit_j[2]
-    w = _u * unit_k[0] + _v * unit_k[1] + _w * unit_k[2]
-    [df['u'], df['v'], df['w']] = [u, v, w]
+    if len(df[ANEMOMETER_FILTER]) > 0:
+        _u = df[ANEMOMETER_FILTER]['u'].values
+        _v = df[ANEMOMETER_FILTER]['v'].values
+        _w = df[ANEMOMETER_FILTER]['w'].values
+        u = _u * unit_i[0] + _v * unit_i[1] + _w * unit_i[2]
+        v = _u * unit_j[0] + _v * unit_j[1] + _w * unit_j[2]
+        w = _u * unit_k[0] + _v * unit_k[1] + _w * unit_k[2]
+        [df.loc[ANEMOMETER_FILTER, 'u'], df.loc[ANEMOMETER_FILTER, 'v'], df.loc[ANEMOMETER_FILTER, 'w']] = [u, v, w]
 
     for var in VARIABLES:
-        diagnostics[f'{var}_resolution'], diagnostics[f'{var}_dropouts'], diagnostics[f'{var}_extreme_dropouts'] = \
-            amplitude_resolution_dropouts(df, var)
+        if len(df[filter[var]]) == 0:
+            diagnostics[f'{var}_resolution'] = diagnostics[f'{var}_dropouts'] = diagnostics[f'{var}_extreme_dropouts'] = None
+        else:
+            diagnostics[f'{var}_resolution'], diagnostics[f'{var}_dropouts'], diagnostics[f'{var}_extreme_dropouts'] = amplitude_resolution_dropouts(df[filter[var]], var)
 
-    diagnostics['u_max'] = abs(df['u'].values).max()
-    diagnostics['v_max'] = abs(df['v'].values).max()
-    diagnostics['w_max'] = abs(df['w'].values).max()
-    diagnostics['tsonic_min'] = df['tsonic'].values.min()
-    diagnostics['tsonic_max'] = df['tsonic'].values.max()
-    diagnostics['co2_min'] = df['co2'].values.min()
-    diagnostics['co2_max'] = df['co2'].values.max()
-    diagnostics['h2o_min'] = df['h2o'].values.min()
-    diagnostics['h2o_max'] = df['h2o'].values.max()
+    if len(df[ANEMOMETER_FILTER]) == 0:
+        diagnostics['u_max'] = diagnostics['v_max'] = diagnostics['w_max'] = diagnostics['tsonic_min'] = diagnostics['tsonic_max'] = None
+    else:
+        diagnostics['u_max'] = abs(df[ANEMOMETER_FILTER]['u'].values).max()
+        diagnostics['v_max'] = abs(df[ANEMOMETER_FILTER]['v'].values).max()
+        diagnostics['w_max'] = abs(df[ANEMOMETER_FILTER]['w'].values).max()
+        diagnostics['tsonic_min'] = df[ANEMOMETER_FILTER]['tsonic'].values.min()
+        diagnostics['tsonic_max'] = df[ANEMOMETER_FILTER]['tsonic'].values.max()
+    if len(df[IRGA_FILTER]) == 0:
+        diagnostics['co2_min'] = diagnostics['co2_max'] = diagnostics['h2o_min'] = diagnostics['h2o_max'] = None
+    else:
+        diagnostics['co2_min'] = df[IRGA_FILTER]['co2'].values.min()
+        diagnostics['co2_max'] = df[IRGA_FILTER]['co2'].values.max()
+        diagnostics['h2o_min'] = df[IRGA_FILTER]['h2o'].values.min()
+        diagnostics['h2o_max'] = df[IRGA_FILTER]['h2o'].values.max()
 
     for var in VARIABLES:
-        detrend(df, var)
-        diagnostics[f'{var}_skewness'], diagnostics[f'{var}_kurtosis'] = higher_moment_statistics(df, var)
+        if len(df[filter[var]]) == 0:
+            diagnostics[f'{var}_skewness'] = diagnostics[f'{var}_kurtosis'] = None
+        else:
+            detrend(df, var)
+            diagnostics[f'{var}_skewness'], diagnostics[f'{var}_kurtosis'] = higher_moment_statistics(df[filter[var]], var)
 
     for var in VARIABLES:
-        diagnostics[f'{var}_haar_mean'], diagnostics[f'{var}_haar_variance'] = discontinuities(df, var)
+        if len(df[filter[var]]) == 0:
+            diagnostics[f'{var}_haar_mean'] = diagnostics[f'{var}_haar_variance'] = None
+        else:
+            diagnostics[f'{var}_haar_mean'], diagnostics[f'{var}_haar_variance'] = discontinuities(df[filter[var]], var)
 
-    diagnostics['wind_speed_reduction'], diagnostics['rnu'], diagnostics['rnv'],  diagnostics['rns'] = \
-        nonstationary(df)
+    if len(df[ANEMOMETER_FILTER]) == 0:
+        diagnostics['wind_speed_reduction'] = diagnostics['rnu'] = diagnostics['rnv'] = diagnostics['rns'] = None
+    else:
+        diagnostics['wind_speed_reduction'], diagnostics['rnu'], diagnostics['rnv'],  diagnostics['rns'] = nonstationary(df[ANEMOMETER_FILTER])
 
     return diagnostics
 
 
 def instrument(df):
     """Instrument diagnostics
-    If available records for current time period is less than a threshold, or is more than 18000, a flag is placed
+    If available records for current time period is less than a threshold, or is more than 18000, a flag is raised
     """
-    return float(len(df)) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ)
+    return float(len(df[ANEMOMETER_FILTER])) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ), \
+        float(len(df[IRGA_FILTER])) / (AVERAGING_PERIOD_MINUTES * SECONDS_IN_MINUTE * FREQUENCY_HZ)
 
 
 def spikes(df, var):
@@ -177,13 +207,13 @@ def amplitude_resolution_dropouts(df, var):
 def detrend(df, var):
     """Linear de-trend
     """
-    time_array = df['time'].values.astype(float) / 1.0E9 # Convert to seconds
+    time_array = df[filter[var]]['time'].values.astype(float) / 1.0E9 # Convert to seconds
     time_array -= time_array[0]
 
-    s = np.polyfit(time_array, df[var].values, 1)
+    s = np.polyfit(time_array, df[filter[var]][var].values, 1)
 
     trend = s[0] * time_array + s[1]
-    df[f'{var}_fluct'] = df[var].values - trend
+    df.loc[filter[var], f'{var}_fluct'] = df.loc[filter[var], var].values - trend
 
 
 def higher_moment_statistics(df, var):

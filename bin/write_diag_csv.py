@@ -18,7 +18,7 @@ OUTPUT_VARIABLES = {
     'TA': {'format': '{:.2f}', 'flag': []},
 }
 DIAGNOSTICS = [
-    'instrument',
+    '3dua', 'irga',
     *[f'{str}_spikes' for str in VARIABLES],
     *[f'{str}_resolution' for str in VARIABLES],
     *[f'{str}_dropouts' for str in VARIABLES],
@@ -52,9 +52,9 @@ def write_diag_file(start, end, fluxes, diagnostics, diag_file):
             _diagnostics[d] = BADVAL
     else:
         for var in OUTPUT_VARIABLES:
-            fluxes[var] = BADVAL if np.isnan(fluxes[var]) else OUTPUT_VARIABLES[var]['format'].format(fluxes[var])
+            fluxes[var] = BADVAL if fluxes[var] is None else OUTPUT_VARIABLES[var]['format'].format(fluxes[var])
         for d in DIAGNOSTICS:
-            _diagnostics[d] = '{:.3f}'.format(diagnostics[d])
+            _diagnostics[d] = '{:.3f}'.format(diagnostics[d]) if diagnostics[d] is not None else BADVAL
 
     with open(diag_file, 'a') as f:
         f.write(','.join([ts_start, ts_end, *list(fluxes.values()), *list(_diagnostics.values())]) + '\n')
