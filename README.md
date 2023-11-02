@@ -6,54 +6,54 @@ Contact: Yuning Shi [(Send Email)](mailto:yshi@psu.edu)
 
 ## INSTRUCTION
 
-The code should be run using Python version 3, and requires the `pandas` and `numpy` packages.
+Ensure you have Python version 3 installed along with the required packages, `pandas` and `numpy`.
 
 1. Define site-specific parameters:
 
-   Site-specific parameters should be defined in the `bin/site_parameters.py` file.
-   This includes site name, CSAT3 y-axis direction, instrument sampling frequency, data column names, quality control threshold values, etc.
+   Site-specific parameters should be configured in the `bin/site_parameters.py` file.
+   This includes information such as the site name, CSAT3 y-axis direction, instrument sampling frequency, data column names, quality control threshold values, and more.
 
 2. Process flux data of a single month:
 
-   The syntax for flux processing program is:
+   To process flux data for a specific month, use the following command:
+
    ```shell
    python3 ./bin/ec_flux.py --month YYYY-MM --files filename1 [filename2 ...] [--WPL pressure_filename]
    ```
 
    **EXAMPLE:**
 
-   If we want to process the data from May 2014, and the raw data come in from three files, `./incoming/EC_ts_data1.dat`, `./incoming/EC_ts_data2.dat`, and `./incoming/EC_ts_data3.dat`, we run:
-   ```shell
-   python3 ./bin/ec_flux.py --month 2014-05 --files ./incoming/EC_ts_data1.dat ./incoming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat
-   ```
-   `-WPL` is an optional parameter.
-   When the `-WPL` parameter is used, the Webb-Pearman-Leuning correction will be applied.
-   The WPL correction, however, requires the surface pressure data.
-   Therefore the path to the surface pressure records (i.e., the ten-minute tower top file) must be specified.
+   Suppose you want to process data from May 2014, and you have three raw data files: `./incoming/EC_ts_data1.dat`, `./incoming/EC_ts_data2.dat`, and `./incoming/EC_ts_data3.dat`.
+   You can run the following command:
 
-   For each month, three csv output files are generated.
-   The main flux file is named `<site>_<averaging period>_<start timestamp>_<end timestamp>.csv`.
-   For example, Shale Hills (Ameriflux site US-SSH) May 2014 30-min flux data file will be named `US-SSH_HH_201405010000_201406010000.csv`
-   Two diagnostic files will be generated along with the flux file.
-   A `*_diag.csv`, which contains all the diagnostic parameters, and a `*_flag.csv`, which contains the quality control flags.
+   ```shell
+   python3 ./bin/ec_flux.py --month 2014-05 --files ./incoming/EC_ts_data1.dat ./incoming/EC_ts_data2.dat ./incoming/EC_ts_data3.dat --WPL ./incoming/ten_min_data.dat
+   ```
+
+   The `-WPL` parameter is optional and is used to apply the Webb-Pearman-Leuning correction.
+   This correction requires surface pressure and air temperature data, so you must specify the path to the surface pressure and air temperature records when using this parameter.
+
+   For each month, three CSV output files will be generated.
+   The main flux file will be named `<site>_<averaging period>_<start timestamp>_<end timestamp>.csv`.
+   For example, the 30-minute flux data file for Shale Hills (Ameriflux site US-SSH) in May 2014 will be named `US-SSH_HH_201405010000_201406010000.csv`.
+   Additionally, two diagnostic files will be generated: `*_diag.csv` containing diagnostic parameters and `*_flag.csv` containing quality control flags.
 
 3. Reprocess using new quality control threshold values:
 
-   If different quality control threshold values need to be applied to change the filter of bad flux data, we don't have to reprocess everything.
-   Because the `*_diag.csv` files contain all the diagnostic parameters needed to flag the flux data, we only need to read the `*_diag.csv` file, apply new quality control threshold values, and generate new flux data files.
-   To do this, simply run:
+   If you need to apply different quality control threshold values to filter out bad flux data without reprocessing everything, you can follow these steps:
+
    ```shell
    python3 ./bin/write_flux_csv.py --month YYYY-MM
    ```
 
-   New `*_flag.csv` and main flux files will be generated for the specified month.
+   New `*_flag.csv` and main flux files will be generated for the specified month with the updated quality control thresholds.
 
 ### Site-specific parameters
 
-The following site-specific parameters or functions can be defined in `site_parameters.py`.
+In the `site_parameters.py` file, you can define the following site-specific parameters:
 
 #### `SITE`
-This is the site name, which is used to name output csv files.
+The site name used for naming output CSV files.
 
 #### `CSAT3_AZIMUTH`
 Direction between CSAT3 (or other anemometer) y-axis and true north direction. This parameter is being used for wind direction calculation.
@@ -113,6 +113,7 @@ Droplets on the window can also increase AGC value.
 The AGC value should be monitored and the LI-7500 optical windows should be cleaned when necessary (when the AGC value approaches 100%).
 
 Therefore, to filter out bad data from CSAT-3, we define
+
 ```Python
 ANEMOMETER_FILTER = lambda x: (x['diag'] & 3840) == 0   # 3840 = 1111 0000 0000
 IRGA_FILTER = lambda x: (x['diag'] & 240) == 0          # 240 = 0000 1111 0000
@@ -131,6 +132,38 @@ If the input is different from those units, the `pressure_pa` and `tair_celsius`
 #### `QC_THRESHOLDS`
 These are the quality control diagnostic thresholds as defined in [Vickers and Mahrt (1997)](https://doi.org/10.1175/1520-0426(1997)014<0512:QCAFSP>2.0.CO;2).
 Please refer to the original paper for the definition of those thresholds.
+
+## Output variables
+
+| Variable        | Description                                                  | Units                                            |
+| --------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| TIMESTAMP_START | ISO timestamp start of averaging period                      | YYYYMMDDHHMM                                     |
+| TIMESTAMP_END   | ISO timestamp end of averaging period                        | YYYYMMDDHHMM                                     |
+| USTAR           | Friction velocity                                            | m s<sup>-1</sup>                                 |
+| WD              | Wind direction                                               | Decimal degrees                                  |
+| WS              | Wind speed                                                   | m s<sup>-1</sup>                                 |
+| FC              | Carbon Dioxide (CO2) turbulent flux (no storage correction)  | µmolCO<sub>2</sub> m<sup>-2</sup> s<sup>-1</sup> |
+| H               | Sensible heat turbulent flux (no storage correction)         | W m<sup>-2</sup>                                 |
+| LE              | Latent heat turbulent flux (no storage correction)           | W m<sup>-2</sup>                                 |
+| CO2             | Carbon Dioxide (CO2) mole fraction in wet air                | mg CO<sub>2</sub> m<sup>-3</sup>                 |
+| H2O             | Water (H2O) vapor in mole fraction of wet air                | g H<sub>2</sub>O m<sup>-3</sup>                  |
+| PA              | Atmospheric pressure                                         | kPa                                              |
+| T_SONIC         | Sonic temperature                                            | deg C                                            |
+| TA              | Air temperature                                              | deg C                                            |
+
+
+## QC flags
+
+QC flags reported in the `_flag.csv` file are interpreted as binary numbers, where `1` in each bit represents a failed QC check.
+
+- bit 0: missing data
+- bit 1: spikes
+- bit 2: amplitude resolution
+- bit 3: dropouts
+- bit 4: absolute limits
+- bit 5: higher moment statistics
+- bit 6: discontinuities
+- bit 7: nonstationarity
 
 ## References:
 Burba, G. and Anderson, D., 2010. *A brief practical guide to eddy covariance flux measurements: Principles and workflow examples for scientific and industrial applications*. Li-Cor Biosciences.
