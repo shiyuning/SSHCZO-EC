@@ -150,6 +150,7 @@ def write_flux_file(diag_file):
 def _main():
     parser = argparse.ArgumentParser(description='Write flux data to csv')
     parser.add_argument(
+        '-m',
         '--month',
         required=True,
         type=lambda s: datetime.strptime(s, '%Y-%m'),
