@@ -3,7 +3,6 @@ import numpy as np
 from quality_control import VARIABLES
 from site_parameters import *
 
-BADVAL = '-9999'
 OUTPUT_VARIABLES = {
     'USTAR': {'format': '{:.3f}', 'flag': ['u_flag', 'v_flag', 'w_flag']},
     'WD': {'format': '{:.3f}', 'flag': ['u_flag', 'v_flag']},

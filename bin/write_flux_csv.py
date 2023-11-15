@@ -4,7 +4,6 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from quality_control import VARIABLES
-from write_diag_csv import BADVAL
 from write_diag_csv import OUTPUT_VARIABLES
 from write_diag_csv import DIAGNOSTICS
 from site_parameters import *

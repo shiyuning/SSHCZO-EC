@@ -64,6 +64,9 @@ def pressure_pa(p): return p * 1000.0
 
 def tair_celsius(t): return t
 
+# Special value for flagged data in reports
+BADVAL = '-9999'
+
 # Thresholds for quality control
 QC_THRESHOLDS = {
     'instrument': 0.95,
