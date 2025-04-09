@@ -46,6 +46,7 @@ def main(params):
             comment=COMMENT,
         )
         df = pd.concat([df, _df], ignore_index=True)
+
     # Rename columns to standard names
     df = df.rename(columns={
         TIME: 'time',
@@ -56,6 +57,10 @@ def main(params):
         CO2: 'co2',
         H2O: 'h2o',
     })
+
+    # In the new csv format, timestamps have a 'UTC' string at the end, that needs to be removed
+    df['time'] = df['time'].map(lambda x: x[:-4] if x.endswith(' UTC') else x)
+
     df['time'] = pd.to_datetime(df['time'])
 
     df = df[(df['time'] >= start_of_month) & (df['time'] < end_of_month)]
