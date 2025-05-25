@@ -3,8 +3,8 @@
 # Site specific parameters
 SITE = 'US-SSH'                     # Site name
 CSAT3_AZIMUTH = 199.0               # Direction between CSAT3 y axis and true north direction
-AVERAGING_PERIOD_MINUTES = 30.0     # Averaging period in minutes
-FREQUENCY_HZ = 10.0                 # Sampling frequency in Hz
+AVERAGING_PERIOD_MINUTES = 30       # Averaging period in minutes
+FREQUENCY_HZ = 10                   # Sampling frequency in Hz
 
 # Name of columns in the high-frequency data file
 TIME = 'TmStamp'                    # Time
@@ -46,8 +46,10 @@ def co2_g_per_m3(co2): return co2
 # 0100: detector
 # 0010: pll
 # 0001: sync
-ANEMOMETER_FILTER = lambda x: (x['diag'] & 3840) == 0   # 3840 = 1111 0000 0000
-IRGA_FILTER = lambda x: (x['diag'] & 240) == 0          # 240 = 0000 1111 0000
+ANEMOMETER_FLAGS = 3840 # 3840 = 1111 0000 0000
+ANEMOMETER_FILTER = lambda x: (x['diag'] & ANEMOMETER_FLAGS) == 0
+IRGA_FLAGS = 240    # 240 = 0000 1111 0000
+IRGA_FILTER = lambda x: (x['diag'] & IRGA_FLAGS) == 0
 
 # Name of columns in the pressure data file
 PRESSURE_TIME = 'TmStamp'           # Time
@@ -80,3 +82,6 @@ QC_THRESHOLDS = {
     'wind_speed_reduction': 0.5,    # Vickers and Mahrt (1997) value 0.9
     'relative_nonstationarity': 3.0 # Vickers and Mahrt (1997) value 0.5
 }
+
+DIAG_FILE = lambda resolution, start, end: f'{SITE}_{resolution}_{start.strftime("%Y%m%d%H%M")}_{end.strftime("%Y%m%d%H%M")}_diag.csv'
+FLUX_FILE =  lambda resolution, start, end: f'{SITE}_{resolution}_{start.strftime("%Y%m%d%H%M")}_{end.strftime("%Y%m%d%H%M")}.csv'
