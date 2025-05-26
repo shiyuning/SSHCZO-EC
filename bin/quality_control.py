@@ -45,6 +45,16 @@ def spikes(df: pd.DataFrame) -> tuple[pd.Series, float]:
     spikes_found: list = []
 
     while True:
+        # Loop through each window is very computationally expensive. Instead, the evaluations are performed using a
+        # vectorized method.
+        # First calculate the rolling mean and standard deviation of each window with a width of L1. Then for each
+        # window, calculate the acceptable range of values,
+        #   left: window_mean - spike_detection_threshold * window_std, and
+        #   right: window_mean + spike_detection_thresold * window_std].
+        # Because the rolling method labels each window at the right edge of the window index, value at index k should
+        # be evaluated in those windows labeled k - L1 to k. Calculate the rolling min and max of those window's left
+        # and right, and align with the values to be evaluated.
+
         # Set min_periods = L1 // 2 to force calculating means and standard deviations when missing data are present.
         df['rolling_mean'] = df[col].rolling(L1, min_periods=L1 // 2).mean()
         df['rolling_std'] = df[col].rolling(L1, min_periods=L1 // 2).std()
