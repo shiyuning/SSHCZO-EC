@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Site specific parameters
 SITE = 'US-SSH'                     # Site name
 CSAT3_AZIMUTH = 199.0               # Direction between CSAT3 y axis and true north direction
@@ -15,7 +13,7 @@ T_SONIC = 'Ts'                      # Sonic temperature
 H2O = 'h2o'                         # Water vapor
 CO2 = 'co2'                         # Carbon dioxide
 # Other parameters for the high-frequency data file
-SKIP_ROWS = None                    # Number of rows to skip in the data file (None for automatic detection. Do not skip the header line with column names)
+SKIP_ROWS = None                    # Number of rows to skip in the data file (None for automatic detection)
 COMMENT = '#'                       # Comment line marker
 
 # Unit conversions
@@ -46,9 +44,9 @@ def co2_g_per_m3(co2): return co2
 # 0100: detector
 # 0010: pll
 # 0001: sync
-ANEMOMETER_FLAGS = 3840 # 3840 = 1111 0000 0000
+ANEMOMETER_FLAGS = 3840 # 3840 = 0b 1111 0000 0000
 ANEMOMETER_FILTER = lambda x: (x['diag'] & ANEMOMETER_FLAGS) == 0
-IRGA_FLAGS = 240    # 240 = 0000 1111 0000
+IRGA_FLAGS = 240    # 240 = 0b 0000 1111 0000
 IRGA_FILTER = lambda x: (x['diag'] & IRGA_FLAGS) == 0
 
 # Name of columns in the pressure data file
@@ -56,7 +54,7 @@ PRESSURE_TIME = 'TmStamp'           # Time
 PRESSURE = 'pressure_irga_mean'     # Air pressure
 T_AIR = 'T_hmp_mean'                # Air temperature
 # Other parameters for the pressure data file
-PRESSURE_SKIP_ROWS = None           # Number of rows to skip in the data file (None for automatic detection. Do not skip the header line with column names)
+PRESSURE_SKIP_ROWS = None           # Number of rows to skip in the data file (None for automatic detection)
 PRESSURE_COMMENT = '#'              # Comment line marker
 
 # Unit conversions
@@ -67,7 +65,7 @@ def pressure_pa(p): return p * 1000.0
 def tair_celsius(t): return t
 
 # Special value for flagged data in reports
-BADVAL = '-9999'
+BADVAL = -9999
 
 # Thresholds for quality control
 QC_THRESHOLDS = {

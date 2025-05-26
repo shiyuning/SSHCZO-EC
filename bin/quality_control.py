@@ -103,15 +103,13 @@ def amplitude_resolution_dropouts(df: pd.DataFrame) -> tuple[float, float, float
     """
     L1: int = 1000
     N_BINS: int = 100
-    window_position: int = 0
     empty_bin_ratio: float = 0.0
     dropout_ratio: float = 0.0
     extreme_dropout_ratio: float = 0.0
 
-    while (window_position + L1 <= len(df)):
+    for window_position in range(0, len(df) - L1 + 1, L1 //2):
         # If missing half of data in the window, skip
         if df[window_position:window_position + L1].count()[0] < L1 // 2:
-            window_position += L1 // 2
             continue
 
         array: np.array = df[window_position:window_position + L1].values
@@ -140,8 +138,6 @@ def amplitude_resolution_dropouts(df: pd.DataFrame) -> tuple[float, float, float
         # distribution
         if  (max_dropouts[0] < 0.1 * N_BINS or max_dropouts[0] > 0.9 * N_BINS):
             extreme_dropout_ratio = max(extreme_dropout_ratio, max_dropouts[1] / len(df))
-
-        window_position += L1 // 2
 
     return empty_bin_ratio, dropout_ratio, extreme_dropout_ratio
 
@@ -188,17 +184,15 @@ def discontinuities(df: pd.DataFrame) -> tuple[float, float]:
     record_range: float = np.nanmax(df[col].values) - np.nanmin(df[col].values)
     norm: float = min(record_std, record_range / 4.0)
 
-    window_position: int = 0
     haar_mean_max: float = 0.0
     haar_variance_max: float = 0.0
 
-    while (window_position + L1 <= len(df)):
+    for window_position in range(0, len(df) - L1 + 1, L1 // 4):
         half_point = L1 // 2
         half1 = slice(0, half_point)
         half2 = slice(half_point, L1)
 
         if df[half1][col].count() < L1 // 4 or df[half2][col].count() < L1 // 4:
-            window_position += L1 // 4
             continue
 
         half1_mean = np.nanmean(df[half1][col].values)
@@ -209,8 +203,6 @@ def discontinuities(df: pd.DataFrame) -> tuple[float, float]:
 
         haar_mean_max = max(haar_mean_max, abs((half2_mean - half1_mean) / norm))
         haar_variance_max = max(haar_variance_max, abs((half2_variance - half1_variance) / (record_std * record_std)))
-
-        window_position += L1 // 4
 
     return haar_mean_max, haar_variance_max
 

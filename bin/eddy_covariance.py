@@ -14,33 +14,49 @@ from config import ANEMOMETER_FLAGS, ANEMOMETER_FILTER, IRGA_FLAGS, IRGA_FILTER
 from quality_control import instrument, spikes, amplitude_resolution_dropouts, detrend, higher_moment_statistics
 from quality_control import discontinuities, nonstationary
 
-INSTANTANEOUS_VARIABLES = {'u', 'v', 'w', 'tsonic', 'co2', 'h2o'}
+@dataclass
+class InstantaneousVariable:
+    name: str
+    unit: str
 
-FILTERS = {
-    'u': ANEMOMETER_FILTER,
-    'v': ANEMOMETER_FILTER,
-    'w': ANEMOMETER_FILTER,
-    'tsonic': ANEMOMETER_FILTER,
-    'co2': IRGA_FILTER,
-    'h2o': IRGA_FILTER,
-}
+    def filter(self, x):
+        if self.name in ['u', 'v', 'w', 'tsonic']:
+            return ANEMOMETER_FILTER(x)
+        else:
+            return IRGA_FILTER(x)
 
-OUTPUT_VARIABLES = {
-    'USTAR': {'format': '%.2f', 'flag': ['u_flag', 'v_flag', 'w_flag']},
-    'WD': {'format': '%.1f', 'flag': ['u_flag', 'v_flag']},
-    'WS': {'format': '%.2f', 'flag': ['u_flag', 'v_flag']},
-    'FC': {'format': '%.2f', 'flag': ['w_flag', 'co2_flag']},
-    'H': {'format': '%.2f', 'flag': ['w_flag', 'tsonic_flag']},
-    'LE': {'format': '%.2f', 'flag': ['w_flag', 'h2o_flag']},
-    'CO2': {'format': '%.2f', 'flag': ['co2_flag']},
-    'H2O': {'format': '%.2f', 'flag': ['h2o_flag']},
-    'PA': {'format': '%.2f', 'flag': []},
-    'T_SONIC': {'format': '%.2f', 'flag': ['tsonic_flag']},
-    'TA': {'format': '%.2f', 'flag': []},
-}
+INSTANTANEOUS_VARIABLES = (
+    InstantaneousVariable('u', 'm/s'),
+    InstantaneousVariable('v', 'm/s'),
+    InstantaneousVariable('w', 'm/s'),
+    InstantaneousVariable('tsonic', 'deg C'),
+    InstantaneousVariable('co2', 'g/m3'),
+    InstantaneousVariable('h2o', 'mg/m3'),
+)
+
+@dataclass
+class OutputVariable:
+    name: str
+    unit: str
+    format: str
+    flag: list[str]
+
+OUTPUT_VARIABLES = (
+    OutputVariable('USTAR', 'm/s', '%.2f', ['u_flag', 'v_flag', 'w_flag']),
+    OutputVariable('WD', 'degree', '%.1f', ['u_flag', 'v_flag']),
+    OutputVariable('WS', 'm/s', '%.2f', ['u_flag', 'v_flag']),
+    OutputVariable('FC', 'umolCO2/m2/s', '%.2f', ['w_flag', 'co2_flag']),
+    OutputVariable('H', 'W/m2', '%.2f', ['w_flag', 'tsonic_flag']),
+    OutputVariable('LE', 'W/m2', '%.2f', ['w_flag', 'h2o_flag']),
+    OutputVariable('CO2', 'Mg CO2/m3', '%.2f', ['co2_flag']),
+    OutputVariable('H2O', 'g H2O/m3', '%.2f', ['h2o_flag']),
+    OutputVariable('PA', 'kPa', '%.2f', []),
+    OutputVariable('T_SONIC', 'deg C', '%.2f', ['tsonic_flag']),
+    OutputVariable('TA', 'deg C', '%.2f', []),
+)
 
 class EddyCovariance:
-    def __init__(self, *, time: datetime, unit_k: np.array, df: pd.DataFrame, pressure_df: pd.DataFrame):
+    def __init__(self, *, time: datetime, unit_k: np.array, data: pd.DataFrame, pressure_data: pd.DataFrame):
         self.start: datetime = time
         self.end: datetime = time + relativedelta(minutes=AVERAGING_PERIOD_MINUTES)
         self.unit_k: np.array = unit_k
@@ -48,10 +64,10 @@ class EddyCovariance:
         self.diagnostics: dict = {
             '3dua': np.nan,
             'irga': np.nan,
-            **{f'{v}_spikes': np.nan for v in INSTANTANEOUS_VARIABLES},
-            **{f'{v}_resolution': np.nan for v in INSTANTANEOUS_VARIABLES},
-            **{f'{v}_dropouts': np.nan for v in INSTANTANEOUS_VARIABLES},
-            **{f'{v}_extreme_dropouts': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_spikes': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_resolution': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_dropouts': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_extreme_dropouts': np.nan for v in INSTANTANEOUS_VARIABLES},
             'u_max': np.nan,
             'v_max': np.nan,
             'w_max': np.nan,
@@ -61,10 +77,10 @@ class EddyCovariance:
             'co2_max': np.nan,
             'h2o_min': np.nan,
             'h2o_max': np.nan,
-            **{f'{v}_skewness': np.nan for v in INSTANTANEOUS_VARIABLES},
-            **{f'{v}_kurtosis': np.nan for v in INSTANTANEOUS_VARIABLES},
-            **{f'{v}_haar_mean': np.nan for v in INSTANTANEOUS_VARIABLES},
-            **{f'{v}_haar_variance': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_skewness': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_kurtosis': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_haar_mean': np.nan for v in INSTANTANEOUS_VARIABLES},
+            **{f'{v.name}_haar_variance': np.nan for v in INSTANTANEOUS_VARIABLES},
             'wind_speed_reduction': np.nan,
             'rnu': np.nan,
             'rnv': np.nan,
@@ -87,7 +103,7 @@ class EddyCovariance:
             "TA": np.nan,
         }
 
-        self.data = df[(df['time'] >= self.start) & (df['time'] < self.end)].copy()
+        self.data = data[(data['time'] >= self.start) & (data['time'] < self.end)].copy()
 
         if not self.data.empty:
             self.data['time'] = self.data['time'].values.astype(int) // 1.0E8 - (time - datetime(1970,1,1)).total_seconds() * 10
@@ -95,7 +111,13 @@ class EddyCovariance:
             self.data.set_index('time', inplace=True)
 
             # Re-index the dataframe to make sure it has the right number of rows. Filled rows are labeled with flags
-            self.data = self.data.reindex(list(range(AVERAGING_PERIOD_MINUTES * 60 * FREQUENCY_HZ)))
+            try:
+                self.data = self.data.reindex(list(range(AVERAGING_PERIOD_MINUTES * 60 * FREQUENCY_HZ)))
+            except:
+                print(f'Warning: raw data from {self.start} to {self.end} may have invalid timestamps.')
+                self.data = pd.DataFrame()
+
+        if not self.data.empty:
             self.data['diag'] = self.data['diag'].fillna(ANEMOMETER_FLAGS + IRGA_FLAGS).astype(int)
 
             if self.data[ANEMOMETER_FILTER].empty:
@@ -105,13 +127,13 @@ class EddyCovariance:
 
             print(f'\n{self.end.strftime("%Y-%m-%d %H:%M")}')
 
-        # Get air pressure and temperature
-        if pressure_df.empty:
-            self.pressure = np.nan
-            self.tair = np.nan
-        else:
-            self.pressure = pressure_df[(pressure_df['time'] >= self.start) & (pressure_df['time'] < self.end)].mean()['pressure']
-            self.tair = pressure_df[(pressure_df['time'] >= self.start) & (pressure_df['time'] < self.end)].mean()['tair']
+            # Get air pressure and temperature
+            if pressure_data.empty:
+                self.pressure = np.nan
+                self.tair = np.nan
+            else:
+                self.pressure = pressure_data[(pressure_data['time'] >= self.start) & (pressure_data['time'] < self.end)].mean()['pressure']
+                self.tair = pressure_data[(pressure_data['time'] >= self.start) & (pressure_data['time'] < self.end)].mean()['tair']
 
 
     def quality_control(self):
@@ -125,9 +147,9 @@ class EddyCovariance:
 
         # Spikes
         for v in INSTANTANEOUS_VARIABLES:
-            if self.data[v].isna().all(): continue
+            if self.data[v.name].isna().all(): continue
 
-            self.data[v], self.diagnostics[f'{v}_spikes'] = spikes(self.data[[v]].copy())
+            self.data[v.name], self.diagnostics[f'{v.name}_spikes'] = spikes(self.data[[v.name]].copy())
 
         # Rotate to the natural wind coordinate system after de-spiking
         _u = self.data['u'].values
@@ -139,9 +161,9 @@ class EddyCovariance:
 
         # Resolution problems and dropouts
         for v in INSTANTANEOUS_VARIABLES:
-            if self.data[v].isna().all(): continue
+            if self.data[v.name].isna().all(): continue
 
-            self.diagnostics[f'{v}_resolution'], self.diagnostics[f'{v}_dropouts'], self.diagnostics[f'{v}_extreme_dropouts'] = amplitude_resolution_dropouts(self.data[[v]])
+            self.diagnostics[f'{v.name}_resolution'], self.diagnostics[f'{v.name}_dropouts'], self.diagnostics[f'{v.name}_extreme_dropouts'] = amplitude_resolution_dropouts(self.data[[v.name]])
 
         # Absolute limits
         if not self.data['u'].isna().all():
@@ -162,25 +184,25 @@ class EddyCovariance:
 
         ## Higher moment statistics
         for v in INSTANTANEOUS_VARIABLES:
-            if self.data[v].isna().all():
-                self.data[f'{v}_'] = np.nan
+            if self.data[v.name].isna().all():
+                self.data[f'{v.name}_'] = np.nan
                 continue
 
             # Linear detrend
-            self.data[f'{v}_'] = detrend(self.data[[v]].copy())
-            self.diagnostics[f'{v}_skewness'], self.diagnostics[f'{v}_kurtosis'] = higher_moment_statistics(self.data[f'{v}_'].values)
+            self.data[f'{v.name}_'] = detrend(self.data[[v.name]].copy())
+            self.diagnostics[f'{v.name}_skewness'], self.diagnostics[f'{v.name}_kurtosis'] = higher_moment_statistics(self.data[f'{v.name}_'].values)
 
         # Discontinuities
         for v in INSTANTANEOUS_VARIABLES:
-            if self.data[v].isna().all(): continue
+            if self.data[v.name].isna().all(): continue
 
-            self.diagnostics[f'{v}_haar_mean'], self.diagnostics[f'{v}_haar_variance'] = discontinuities(self.data[[v]])
+            self.diagnostics[f'{v.name}_haar_mean'], self.diagnostics[f'{v.name}_haar_variance'] = discontinuities(self.data[[v.name]])
 
         if not (self.data['u'].isna() & self.data['v'].isna()).all():
             self.diagnostics['wind_speed_reduction'], self.diagnostics['rnu'], self.diagnostics['rnv'],  self.diagnostics['rns'] = nonstationary(self.data[['u', 'v']].copy())
 
 
-    def calculate_fluxes(self):
+    def calculate_fluxes(self) -> None:
         RD = 287.05
         LV = 2503000.0
         C_AIR = 1004.0
@@ -250,11 +272,11 @@ class EddyCovariance:
         self.output['TA'] = self.tair
 
 
-    def write_diag_file(self, *, first: bool, fn: str):
+    def write_diag_file(self, *, first: bool, fn: str) -> None:
         df = pd.DataFrame.from_dict([{**self.output, **self.diagnostics}])
 
-        for col in OUTPUT_VARIABLES:
-            df[col] = df[col].map(lambda x: OUTPUT_VARIABLES[col]['format'] % x)
+        for v in OUTPUT_VARIABLES:
+            df[v.name] = df[v.name].map(lambda x: v.format % x)
 
         for col in self.diagnostics:
             df[col] = df[col].map(lambda x: '%.3f' % x)

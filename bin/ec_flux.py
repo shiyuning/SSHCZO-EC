@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
-from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES, FILTERS
+from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from config import *
 
 def read_monthly_data(fns: list[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
@@ -30,12 +30,11 @@ def read_monthly_data(fns: list[str], start_of_month: datetime, end_of_month: da
     df['time'] = pd.to_datetime(df['time'].map(lambda x: x[:-4] if x.endswith(' UTC') else x))
     df = df[(df['time'] >= start_of_month) & (df['time'] < end_of_month)]
     if df.empty:
-        print('No data available')
-        exit()
+        raise ValueError('No data available.')
 
-    # Mask bad data with NaN using data record flags
+    # Mask bad (flagged) data with NaN using data record flags
     for v in INSTANTANEOUS_VARIABLES:
-        df.loc[~FILTERS[v](df), v] = np.nan
+        df.loc[~v.filter(df), v.name] = np.nan
 
     # Convert to standard units
     df['u'] = df['u'].map(lambda x: wind_speed_m_per_s(x))
@@ -64,8 +63,7 @@ def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime
     df = df[(df['time'] >= start_of_month) & (df['time'] < end_of_month)]
 
     if df.empty:
-        print('No pressure data available')
-        exit()
+        raise ValueError('No pressure data available.')
 
     # Convert to standard units
     df['pressure'] = df['pressure'].map(lambda x: pressure_pa(x))
@@ -75,8 +73,6 @@ def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime
 
 
 def main(params):
-    print(datetime.now().strftime("%H:%M:%S"))
-
     files = params['files'][0]
     start_of_month = params['month']
     end_of_month = start_of_month + relativedelta(months=1)
@@ -91,26 +87,20 @@ def main(params):
         case 60:
             resolution = 'HR'
         case _:
-            raise(KeyError('Please use either 30 min or 60 min for averaging period.'))
+            raise ValueError('Please use either 30 min or 60 min for averaging period.')
 
-    if pressure_file:
-        WPL = True
-        pressure_df = read_pressure_data(pressure_file, start_of_month, end_of_month)
-    else:
-        WPL = False
-        pressure_df = pd.DataFrame()
+    pressure_df = read_pressure_data(pressure_file, start_of_month, end_of_month) if pressure_file else pd.DataFrame()
 
     # Determine unit vector k of planar fit coordinate
     # (Lee, L., W. Massman, and B. Law, 2004: Handbook of Micrometeorology, Chapt 3, Section 3)
     # unit_k is unit vector parallel to new coordinate z axis
-    if not df[ANEMOMETER_FILTER].empty:
-        unit_k = unit_vector_k(df['u'].values, df['v'].values, df['w'].values)
-    else:
-        unit_k = None
 
-    for time_block in pd.date_range(start_of_month,end_of_month, freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list():
-        # Create an EddyCovarianceData class for data processing
-        eddy_covariance = EddyCovariance(time=time_block, unit_k=unit_k, df=df, pressure_df=pressure_df)
+    unit_k = unit_vector_k(df['u'].values, df['v'].values, df['w'].values) if not df[ANEMOMETER_FILTER].empty else None
+
+    for time_block in pd.date_range(start_of_month, end_of_month, freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list()[:-1]:
+        # Create an EddyCovariance class for data processing
+        eddy_covariance = EddyCovariance(time=time_block, unit_k=unit_k, data=df, pressure_data=pressure_df)
+
         if not eddy_covariance.data.empty:
             # Quality control following Vickers and Mahrt (1997)
             eddy_covariance.quality_control()
@@ -124,10 +114,9 @@ def main(params):
     # Write flux output file
     write_flux_file(DIAG_FILE(resolution, start_of_month, end_of_month))
 
-    print(datetime.now().strftime("%H:%M:%S"))
 
 def _main():
-    parser = argparse.ArgumentParser(description='Process EC data')
+    parser = argparse.ArgumentParser(description='Process eddy covariance data')
     parser.add_argument(
         '-m',
         '--month',
