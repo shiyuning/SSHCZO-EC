@@ -88,11 +88,12 @@ def _main():
     start_of_month = parser.parse_args().month
     end_of_month = start_of_month + relativedelta(months=1)
 
-    match AVERAGING_PERIOD_MINUTES:
-        case 30:
-            resolution = 'HH'
-        case 60:
-            resolution = 'HR'
+    if AVERAGING_PERIOD_MINUTES == 30:
+        resolution = 'HH'
+    elif AVERAGING_PERIOD_MINUTES == 60:
+        resolution = 'HR'
+    else:
+        raise ValueError('Please use either 30 min or 60 min for averaging period.')
 
     write_flux_file(DIAG_FILE(SITE, resolution, start_of_month, end_of_month))
 

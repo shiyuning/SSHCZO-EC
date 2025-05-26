@@ -85,13 +85,12 @@ def main(params):
     # Read all files
     df = read_monthly_data(files, start_of_month, end_of_month)
 
-    match AVERAGING_PERIOD_MINUTES:
-        case 30:
-            resolution = 'HH'
-        case 60:
-            resolution = 'HR'
-        case _:
-            raise ValueError('Please use either 30 min or 60 min for averaging period.')
+    if AVERAGING_PERIOD_MINUTES == 30:
+        resolution = 'HH'
+    elif AVERAGING_PERIOD_MINUTES == 60:
+        resolution = 'HR'
+    else:
+        raise ValueError('Please use either 30 min or 60 min for averaging period.')
 
     pressure_df = read_pressure_data(pressure_file, start_of_month, end_of_month) if pressure_file else pd.DataFrame()
 
