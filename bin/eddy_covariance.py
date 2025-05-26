@@ -7,12 +7,12 @@ from dateutil.relativedelta import relativedelta
 from itertools import groupby
 from operator import itemgetter
 from scipy.stats import kurtosis, skew
-from unit_vectors import unit_vector_ij
 from config import AVERAGING_PERIOD_MINUTES, FREQUENCY_HZ
-from config import CSAT3_AZIMUTH
-from config import ANEMOMETER_FLAGS, ANEMOMETER_FILTER, IRGA_FLAGS, IRGA_FILTER
+from config import CSAT3_AZIMUTH, ANEMOMETER_FLAGS, ANEMOMETER_FILTER, IRGA_FLAGS, IRGA_FILTER
+from config import BADVAL
 from quality_control import instrument, spikes, amplitude_resolution_dropouts, detrend, higher_moment_statistics
 from quality_control import discontinuities, nonstationary
+from unit_vectors import unit_vector_ij
 
 @dataclass
 class InstantaneousVariable:
@@ -90,17 +90,7 @@ class EddyCovariance:
         self.output: dict = {
             'TIMESTAMP_START': self.start.strftime("%Y%m%d%H%M"),
             'TIMESTAMP_END': self.end.strftime("%Y%m%d%H%M"),
-            "USTAR": np.nan,
-            "WD": np.nan,
-            "WS": np.nan,
-            "FC": np.nan,
-            "H": np.nan,
-            "LE": np.nan,
-            "CO2": np.nan,
-            "H2O":np.nan,
-            "PA": np.nan,
-            "T_SONIC": np.nan,
-            "TA": np.nan,
+            **{v.name: np.nan for v in OUTPUT_VARIABLES},
         }
 
         self.data = data[(data['time'] >= self.start) & (data['time'] < self.end)].copy()
@@ -281,7 +271,7 @@ class EddyCovariance:
         for col in self.diagnostics:
             df[col] = df[col].map(lambda x: '%.3f' % x)
 
-        df.replace('nan', '-9999', inplace=True)
+        df.replace('nan', str(BADVAL), inplace=True)
 
         with open(fn, 'w' if first else 'a') as f:
             df.to_csv(

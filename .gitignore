@@ -160,7 +160,10 @@ cython_debug/
 #.idea/
 
 .DS_Store
-data/
+/data
 *.csv
 *.dat
 *.ipynb
+*.out
+*.bak
+*.job

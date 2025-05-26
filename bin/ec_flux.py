@@ -3,10 +3,14 @@ import numpy  as np
 import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from config import AVERAGING_PERIOD_MINUTES, ANEMOMETER_FILTER, DIAG_FILE
+from config import TIME, U, V, W, T_SONIC, CO2, H2O, SKIP_ROWS, COMMENT
+from config import PRESSURE_TIME, PRESSURE, T_AIR, PRESSURE_SKIP_ROWS, PRESSURE_COMMENT
+from config import wind_speed_m_per_s, tsonic_celsius, h2o_mg_per_m3, co2_g_per_m3
+from config import pressure_pa, tair_celsius
+from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
-from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
-from config import *
 
 def read_monthly_data(fns: list[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
     df = pd.DataFrame()
@@ -109,7 +113,10 @@ def main(params):
             eddy_covariance.calculate_fluxes()
 
         # Write to diagnostic output file
-        eddy_covariance.write_diag_file(first=time_block == start_of_month, fn=DIAG_FILE(resolution, start_of_month, end_of_month))
+        eddy_covariance.write_diag_file(
+            first=time_block == start_of_month,
+            fn=DIAG_FILE(resolution, start_of_month, end_of_month),
+        )
 
     # Write flux output file
     write_flux_file(DIAG_FILE(resolution, start_of_month, end_of_month))

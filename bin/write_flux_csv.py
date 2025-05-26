@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from eddy_covariance import INSTANTANEOUS_VARIABLES, OUTPUT_VARIABLES
-from config import SITE, AVERAGING_PERIOD_MINUTES, QC_THRESHOLDS, BADVAL
+from config import SITE, AVERAGING_PERIOD_MINUTES, QC_THRESHOLDS, BADVAL, DIAG_FILE
 
 FLAGS = {
     '3dua': lambda x: np.nan if np.isnan(x['3dua']) else x['3dua'] < QC_THRESHOLDS['instrument'] or x['3dua'] > 1.0,
@@ -50,28 +50,28 @@ def calculate_flags(diagnostics: dict) -> dict:
 
 def write_flux_file(diag_file: str) -> None:
     # Read diagnostic file
-    df = pd.read_csv(diag_file)
-    df.replace(BADVAL, np.nan, inplace=True)
+    df = pd.read_csv(
+        diag_file,
+        na_values=BADVAL,
+    )
 
     # Calculate diagnostic flags based on QC thresholds
     df[[f'{v.name}_flag' for v in INSTANTANEOUS_VARIABLES]] = df.apply(lambda x: calculate_flags(x), axis=1, result_type='expand')
 
     for v in OUTPUT_VARIABLES:
         df[v.name] = df.apply(
-            lambda x: np.nan if x[v.flag].sum(skipna=False)!= 0 else x[v.name],
+            lambda x: np.nan if x[v.flag].sum(skipna=False)!= 0 else v.format % x[v.name],
             axis=1,
         )
 
     df.replace(np.nan, str(BADVAL), inplace=True)
 
+    # Write to report file
     flux_file = diag_file.replace('_diag.csv', '.csv')
     df[['TIMESTAMP_START', 'TIMESTAMP_END', *[v.name for v in OUTPUT_VARIABLES]]].to_csv(flux_file, index=False)
 
+    # Write to diagnostic flag file
     flag_file = diag_file.replace('_diag.csv', '_flag.csv')
-
-    for v in OUTPUT_VARIABLES:
-        df[v.name] = df[v.name].map(lambda x: x if x == str(BADVAL) else v.format % float(x))
-
     df[['TIMESTAMP_START', 'TIMESTAMP_END', *[f'{v.name}_flag' for v in INSTANTANEOUS_VARIABLES]]].astype(int).to_csv(flag_file, index=False)
 
 
@@ -94,9 +94,7 @@ def _main():
         case 60:
             resolution = 'HR'
 
-    diag_file = f'{SITE}_{resolution}_{start_of_month.strftime("%Y%m%d%H%M")}_{end_of_month.strftime("%Y%m%d%H%M")}_diag.csv'
-
-    write_flux_file(diag_file)
+    write_flux_file(DIAG_FILE(SITE, resolution, start_of_month, end_of_month))
 
 
 if __name__ == '__main__':

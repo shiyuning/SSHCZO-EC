@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import kurtosis, skew
 from itertools import groupby
 from operator import itemgetter
-from config import *
+from config import AVERAGING_PERIOD_MINUTES, FREQUENCY_HZ, ANEMOMETER_FILTER, IRGA_FILTER
 
 
 def instrument(df: pd.DataFrame) -> tuple[float, float]:
