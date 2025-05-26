@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from itertools import groupby
 from operator import itemgetter
 from scipy.stats import kurtosis, skew
+from typing import List
 from config import AVERAGING_PERIOD_MINUTES, FREQUENCY_HZ
 from config import CSAT3_AZIMUTH, ANEMOMETER_FLAGS, ANEMOMETER_FILTER, IRGA_FLAGS, IRGA_FILTER
 from config import BADVAL
@@ -39,7 +40,7 @@ class OutputVariable:
     name: str
     unit: str
     format: str
-    flag: list[str]
+    flag: List[str]
 
 OUTPUT_VARIABLES = (
     OutputVariable('USTAR', 'm/s', '%.2f', ['u_flag', 'v_flag', 'w_flag']),

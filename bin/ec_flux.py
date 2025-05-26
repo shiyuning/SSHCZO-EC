@@ -3,6 +3,7 @@ import numpy  as np
 import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from typing import List
 from config import AVERAGING_PERIOD_MINUTES, ANEMOMETER_FILTER, DIAG_FILE
 from config import TIME, U, V, W, T_SONIC, CO2, H2O, SKIP_ROWS, COMMENT
 from config import PRESSURE_TIME, PRESSURE, T_AIR, PRESSURE_SKIP_ROWS, PRESSURE_COMMENT
@@ -12,7 +13,7 @@ from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
 
-def read_monthly_data(fns: list[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
+def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
     df = pd.DataFrame()
     print(f'Reading {len(fns)} {"files" if len(fns) > 1 else "file"}:')
     for f in fns:

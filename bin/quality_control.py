@@ -2,12 +2,13 @@ import math
 import numpy as np
 import pandas as pd
 from scipy.stats import kurtosis, skew
+from typing import List, Tuple
 from itertools import groupby
 from operator import itemgetter
 from config import AVERAGING_PERIOD_MINUTES, FREQUENCY_HZ, ANEMOMETER_FILTER, IRGA_FILTER
 
 
-def instrument(df: pd.DataFrame) -> tuple[float, float]:
+def instrument(df: pd.DataFrame) -> Tuple[float, float]:
     """Instrument diagnostics
 
     If available records for current time period is less than a threshold, or is more than 18000, a flag is raised
@@ -18,7 +19,7 @@ def instrument(df: pd.DataFrame) -> tuple[float, float]:
     return len(df[ANEMOMETER_FILTER]) / total_records, len(df[IRGA_FILTER]) / total_records
 
 
-def spikes(df: pd.DataFrame) -> tuple[pd.Series, float]:
+def spikes(df: pd.DataFrame) -> Tuple[pd.Series, float]:
     """Detect and remove spikes
 
     The method computes the mean and standard deviation for a series of moving windows of length L1. The window moves
@@ -98,7 +99,7 @@ def spikes(df: pd.DataFrame) -> tuple[pd.Series, float]:
         threshold_increment += 0.1
 
 
-def amplitude_resolution_dropouts(df: pd.DataFrame) -> tuple[float, float, float]:
+def amplitude_resolution_dropouts(df: pd.DataFrame) -> Tuple[float, float, float]:
     """Detect resolution problems and dropouts
 
     An amplitude resolution problem is detected by computing a series of discrete frequency distributions for half-
@@ -166,7 +167,7 @@ def detrend(df: pd.DataFrame) -> pd.Series:
     return df[f'{col}_']
 
 
-def higher_moment_statistics(array: np.array) -> tuple[float, float]:
+def higher_moment_statistics(array: np.array) -> Tuple[float, float]:
     """Detect possible instrument or recording problems and physical but unusual behavior using higher-moment statistics
 
     The skewness and kurtosis of the fields are computed for the entire record. The record is hard flagged when the
@@ -175,7 +176,7 @@ def higher_moment_statistics(array: np.array) -> tuple[float, float]:
     return skew(array, nan_policy='omit'), kurtosis(array, fisher=False, nan_policy='omit')
 
 
-def discontinuities(df: pd.DataFrame) -> tuple[float, float]:
+def discontinuities(df: pd.DataFrame) -> Tuple[float, float]:
     """Detect discontinuities in the data using the Haar transform
 
     The transform is computed for a series of moving windows of width L1 and then normalized by the smaller of the
@@ -217,7 +218,7 @@ def discontinuities(df: pd.DataFrame) -> tuple[float, float]:
     return haar_mean_max, haar_variance_max
 
 
-def nonstationary(df: pd.DataFrame) -> tuple[float, float, float, float]:
+def nonstationary(df: pd.DataFrame) -> Tuple[float, float, float, float]:
     """Identify nonstaionarity of horizontal wind
 
     The wind speed reduction is defined as the ratio of the speed of the vector averaged wind to the averaged

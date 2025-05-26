@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple
 
 def unit_vector_k(u: np.array, v: np.array, w: np.array) -> np.array:
     """Determines unit vectors
@@ -34,7 +35,7 @@ def unit_vector_k(u: np.array, v: np.array, w: np.array) -> np.array:
     return unit_k
 
 
-def unit_vector_ij(u: np.array, v: np.array, w: np.array, unit_k: np.array) -> tuple[np.array, np.array]:
+def unit_vector_ij(u: np.array, v: np.array, w: np.array, unit_k: np.array) -> Tuple[np.array, np.array]:
     unit_j = np.cross(unit_k, [np.nanmean(u), np.nanmean(v), np.nanmean(w)])
     unit_j /= np.linalg.norm(unit_j)
     unit_i = np.cross(unit_j, unit_k)
