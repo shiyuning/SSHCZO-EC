@@ -10,7 +10,7 @@ Ensure you have Python version 3 installed along with the required packages, `pa
 
 1. Define site-specific parameters:
 
-   Site-specific parameters should be configured in the `bin/site_parameters.py` file.
+   Site-specific parameters should be configured in the `bin/config.py` file.
    This includes information such as the site name, CSAT3 y-axis direction, instrument sampling frequency, data column names, quality control threshold values, and more.
 
 2. Process flux data of a single month:
@@ -50,7 +50,7 @@ Ensure you have Python version 3 installed along with the required packages, `pa
 
 ### Site-specific parameters
 
-In the `site_parameters.py` file, you can define the following site-specific parameters:
+In the `config.py` file, you can define the following site-specific parameters:
 
 #### `SITE`
 The site name used for naming output CSV files.
