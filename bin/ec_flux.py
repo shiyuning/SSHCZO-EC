@@ -13,6 +13,8 @@ from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
 
+VERSION = '1.0.0'
+
 def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
     df = pd.DataFrame()
     print(f'Reading {len(fns)} {"files" if len(fns) > 1 else "file"}:')
@@ -78,8 +80,8 @@ def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime
 
 
 def main(params):
-    files = params['files'][0]
     start_of_month = params['month']
+    files = params['files'][0]
     end_of_month = start_of_month + relativedelta(months=1)
     pressure_file = params['WPL']
 
@@ -127,8 +129,7 @@ def _main():
     parser.add_argument(
         '-m',
         '--month',
-        required=True,
-        type=lambda s: datetime.strptime(s, '%Y-%m'),
+        type=lambda x: datetime.strptime(x, '%Y-%m'),
         help='Month YYYY-MM',
     )
     parser.add_argument(
@@ -141,7 +142,15 @@ def _main():
         '--WPL',
         type=str,
     )
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'Eddy covariance flux code for Shale Hills Critical Zone Observatory v{VERSION}'
+    )
     args = parser.parse_args()
+
+    if args.month is None or args.files is None:
+        raise ValueError('Month (--month, -m) and raw files (--files, -f) should be defined.')
 
     main(vars(args))
 
