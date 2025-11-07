@@ -112,7 +112,7 @@ class EddyCovariance:
             self.data['diag'] = self.data['diag'].fillna(ANEMOMETER_FLAGS + IRGA_FLAGS).astype(int)
 
             if self.data[ANEMOMETER_FILTER].empty:
-                self.unit_i, self.unit_j = np.nan, np.nan
+                self.unit_i, self.unit_j = None, None
             else:
                 self.unit_i, self.unit_j = unit_vector_ij(self.data['u'].values, self.data['v'].values, self.data['w'].values, unit_k)
 
@@ -143,12 +143,13 @@ class EddyCovariance:
             self.data[v.name], self.diagnostics[f'{v.name}_spikes'] = spikes(self.data[[v.name]].copy())
 
         # Rotate to the natural wind coordinate system after de-spiking
-        _u = self.data['u'].values
-        _v = self.data['v'].values
-        _w = self.data['w'].values
-        self.data['u'] = _u * self.unit_i[0] + _v * self.unit_i[1] + _w * self.unit_i[2]
-        self.data['v'] = _u * self.unit_j[0] + _v * self.unit_j[1] + _w * self.unit_j[2]
-        self.data['w'] = _u * self.unit_k[0] + _v * self.unit_k[1] + _w * self.unit_k[2]
+        if not self.data[ANEMOMETER_FILTER].empty:
+            _u = self.data['u'].values
+            _v = self.data['v'].values
+            _w = self.data['w'].values
+            self.data['u'] = _u * self.unit_i[0] + _v * self.unit_i[1] + _w * self.unit_i[2]
+            self.data['v'] = _u * self.unit_j[0] + _v * self.unit_j[1] + _w * self.unit_j[2]
+            self.data['w'] = _u * self.unit_k[0] + _v * self.unit_k[1] + _w * self.unit_k[2]
 
         # Resolution problems and dropouts
         for v in INSTANTANEOUS_VARIABLES:
@@ -211,6 +212,8 @@ class EddyCovariance:
         if not (np.isnan(u_) & np.isnan(w_) & np.isnan(v_)).all():
             ust = math.sqrt(math.sqrt(np.nanmean(u_ * w_) * np.nanmean(u_ * w_) + np.nanmean(v_ * w_) * np.nanmean(v_ * w_)))
             print(f'  Friction velocity: {ust:.3f} m/s')
+        else:
+            ust = np.nan
 
         sh = RHO_AIR * C_AIR * np.nanmean(w_ * tsonic_) if not (np.isnan(w_) & np.isnan(tsonic_)).all() else np.nan
         fc = np.nanmean(w_ * co2_) if not (np.isnan(w_) & np.isnan(co2_)).all() else np.nan
