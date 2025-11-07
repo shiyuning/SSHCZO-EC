@@ -13,7 +13,7 @@ from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
 
-VERSION = '1.0.0'
+__version__ = '1.0.0.post'
 
 def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
     df = pd.DataFrame()
@@ -145,7 +145,7 @@ def _main():
     parser.add_argument(
         '--version',
         action='version',
-        version=f'Eddy covariance flux code for Shale Hills Critical Zone Observatory v{VERSION}'
+        version=f'Eddy covariance flux code for Shale Hills Critical Zone Observatory v{__version__}'
     )
     args = parser.parse_args()
 
