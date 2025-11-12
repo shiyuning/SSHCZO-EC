@@ -13,7 +13,7 @@ from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
 
-__version__ = '1.0.1'
+__version__ = '1.0.1.post'
 
 def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
     df = pd.DataFrame()
@@ -75,6 +75,9 @@ def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime
     # Convert to standard units
     df['pressure'] = df['pressure'].map(lambda x: pressure_pa(x))
     df['tair'] = df['tair'].map(lambda x: tair_celsius(x))
+
+    df[(df['pressure'] < 60000) | (df['pressure'] > 120000)]['pressure'] = np.nan
+    df[(df['tair'] < -50.0) | (df['tair'] > 60.0)]['tair'] = np.nan
 
     return df
 
