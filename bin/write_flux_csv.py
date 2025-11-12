@@ -59,6 +59,8 @@ def write_flux_file(diag_file: str) -> None:
     df[[f'{v.name}_flag' for v in INSTANTANEOUS_VARIABLES]] = df.apply(lambda x: calculate_flags(x), axis=1, result_type='expand')
 
     for v in OUTPUT_VARIABLES:
+        if not v.flag: continue
+
         df[v.name] = df.apply(
             lambda x: np.nan if x[v.flag].sum(skipna=False)!= 0 else v.format % x[v.name],
             axis=1,
@@ -95,7 +97,7 @@ def _main():
     else:
         raise ValueError('Please use either 30 min or 60 min for averaging period.')
 
-    write_flux_file(DIAG_FILE(SITE, resolution, start_of_month, end_of_month))
+    write_flux_file(DIAG_FILE(resolution, start_of_month, end_of_month))
 
 
 if __name__ == '__main__':
