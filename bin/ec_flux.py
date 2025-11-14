@@ -1,7 +1,7 @@
 import argparse
 import numpy  as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import List
 from config import AVERAGING_PERIOD_MINUTES, ANEMOMETER_FILTER, DIAG_FILE
@@ -13,9 +13,17 @@ from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
 
-__version__ = '1.0.2'
+__version__ = '1.0.2.post'
 
-def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
+def get_previous_half_hour(t: datetime):
+    return (t - timedelta(minutes=t.minutes if t.minutes < 30 else t.minutes - 30)).replace(second=0, microsecond=0)
+
+
+def get_next_half_hour(t: datetime):
+    return (t + timedelta(minutes=30 - t.minutes if t.minutes < 30 else 60 - t.minutes)).replace(second=0, microsecond=0)
+    
+
+def read_eddy_covariance_data(fns: List[str], time_range: List[datetime]) -> pd.DataFrame:
     df = pd.DataFrame()
     print(f'Reading {len(fns)} {"files" if len(fns) > 1 else "file"}:')
     for f in fns:
@@ -35,9 +43,15 @@ def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: da
 
     # In the new csv format, timestamps have a 'UTC' string at the end, that needs to be removed
     df['time'] = pd.to_datetime(df['time'].map(lambda x: x[:-4] if x.endswith(' UTC') else x))
-    df = df[(df['time'] >= start_of_month) & (df['time'] < end_of_month)]
-    if df.empty:
-        raise ValueError('No data available.')
+
+    df.sort_values(by='time', inplace=True)
+
+    if time_range:
+        df = df[(df['time'] >= time_range[0]) & (df['time'] < time_range[1])]
+        if df.empty:
+            raise ValueError('No data available.')
+    else:
+        time_range += [get_previous_half_hour(df.iloc[0]['time']), get_next_half_hour(df.iloc[-1]['time'])]
 
     # Mask bad (flagged) data with NaN using data record flags
     for v in INSTANTANEOUS_VARIABLES:
@@ -54,7 +68,7 @@ def read_monthly_data(fns: List[str], start_of_month: datetime, end_of_month: da
     return df
 
 
-def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime) -> pd.DataFrame:
+def read_pressure_data(fn: str, time_range: List[datetime]) -> pd.DataFrame:
     df = pd.read_csv(
         fn,
         skiprows=PRESSURE_SKIP_ROWS,
@@ -62,12 +76,12 @@ def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime
     )
 
     df.rename(
-        columns={PRESSURE_TIME: 'time', PRESSURE: 'pressure', T_AIR: 'tair', },
+        columns={PRESSURE_TIME: 'time', PRESSURE: 'pressure', T_AIR: 'tair'},
         inplace=True,
     )
 
     df['time'] = pd.to_datetime(df['time'].map(lambda x: x[:-4] if x.endswith(' UTC') else x))
-    df = df[(df['time'] >= start_of_month) & (df['time'] < end_of_month)]
+    df = df[(df['time'] >= time_range[0]) & (df['time'] <= time_range[1])]
 
     if df.empty:
         raise ValueError('No pressure data available.')
@@ -76,20 +90,23 @@ def read_pressure_data(fn: str, start_of_month: datetime, end_of_month: datetime
     df['pressure'] = df['pressure'].map(lambda x: pressure_pa(x))
     df['tair'] = df['tair'].map(lambda x: tair_celsius(x))
 
-    df[(df['pressure'] < 60000) | (df['pressure'] > 120000)]['pressure'] = np.nan
+    df[(df['pressure'] < 6.0E4) | (df['pressure'] > 1.2E5)]['pressure'] = np.nan
     df[(df['tair'] < -50.0) | (df['tair'] > 60.0)]['tair'] = np.nan
 
     return df
 
 
 def main(params):
-    start_of_month = params['month']
+    if params['month'] is not None:
+        time_range = [params['month'], params['month'] + relativedelta(months=1)]
+    else:
+        time_range = []
+
     files = params['files'][0]
-    end_of_month = start_of_month + relativedelta(months=1)
     pressure_file = params['WPL']
 
     # Read all files
-    df = read_monthly_data(files, start_of_month, end_of_month)
+    df = read_eddy_covariance_data(files, time_range)
 
     if AVERAGING_PERIOD_MINUTES == 30:
         resolution = 'HH'
@@ -98,15 +115,14 @@ def main(params):
     else:
         raise ValueError('Please use either 30 min or 60 min for averaging period.')
 
-    pressure_df = read_pressure_data(pressure_file, start_of_month, end_of_month) if pressure_file else pd.DataFrame()
+    pressure_df = read_pressure_data(pressure_file, time_range) if pressure_file else pd.DataFrame()
 
     # Determine unit vector k of planar fit coordinate
     # (Lee, L., W. Massman, and B. Law, 2004: Handbook of Micrometeorology, Chapt 3, Section 3)
     # unit_k is unit vector parallel to new coordinate z axis
-
     unit_k = unit_vector_k(df['u'].values, df['v'].values, df['w'].values) if not df[ANEMOMETER_FILTER].empty else None
 
-    for time_block in pd.date_range(start_of_month, end_of_month, freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list()[:-1]:
+    for time_block in pd.date_range(time_range[0], time_range[1], freq=f'{AVERAGING_PERIOD_MINUTES}min').to_list()[:-1]:
         # Create an EddyCovariance class for data processing
         eddy_covariance = EddyCovariance(time=time_block, unit_k=unit_k, data=df, pressure_data=pressure_df)
 
@@ -119,12 +135,12 @@ def main(params):
 
         # Write to diagnostic output file
         eddy_covariance.write_diag_file(
-            first=time_block == start_of_month,
-            fn=DIAG_FILE(resolution, start_of_month, end_of_month),
+            first=time_block == time_range[0],
+            fn=DIAG_FILE(resolution, time_range),
         )
 
     # Write flux output file
-    write_flux_file(DIAG_FILE(resolution, start_of_month, end_of_month))
+    write_flux_file(DIAG_FILE(resolution, time_range))
 
 
 def _main():
@@ -138,6 +154,7 @@ def _main():
     parser.add_argument(
         '-f',
         '--files',
+        required=True,
         action='append',
         nargs='+',
     )
@@ -151,9 +168,6 @@ def _main():
         version=f'Eddy covariance flux code for Shale Hills Critical Zone Observatory v{__version__}'
     )
     args = parser.parse_args()
-
-    if args.month is None or args.files is None:
-        raise ValueError('Month (--month, -m) and raw files (--files, -f) should be defined.')
 
     main(vars(args))
 

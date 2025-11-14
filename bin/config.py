@@ -81,5 +81,5 @@ QC_THRESHOLDS = {
     'relative_nonstationarity': 3.0 # Vickers and Mahrt (1997) value 0.5
 }
 
-DIAG_FILE = lambda resolution, start, end: f'{SITE}_{resolution}_{start.strftime("%Y%m%d%H%M")}_{end.strftime("%Y%m%d%H%M")}_diag.csv'
-FLUX_FILE =  lambda resolution, start, end: f'{SITE}_{resolution}_{start.strftime("%Y%m%d%H%M")}_{end.strftime("%Y%m%d%H%M")}.csv'
+DIAG_FILE = lambda resolution, time_range: f'{SITE}_{resolution}_{time_range[0].strftime("%Y%m%d%H%M")}_{time_range[1].strftime("%Y%m%d%H%M")}_diag.csv'
+FLUX_FILE =  lambda resolution, time_range: f'{SITE}_{resolution}_{time_range[0].strftime("%Y%m%d%H%M")}_{time_range[1].strftime("%Y%m%d%H%M")}.csv'
