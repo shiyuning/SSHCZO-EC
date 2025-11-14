@@ -13,7 +13,7 @@ from eddy_covariance import EddyCovariance, INSTANTANEOUS_VARIABLES
 from unit_vectors import unit_vector_k
 from write_flux_csv import write_flux_file
 
-__version__ = '1.0.2.post'
+__version__ = '1.1.0'
 
 def get_previous_half_hour(t: datetime):
     return (t - timedelta(minutes=t.minute if t.minute < 30 else t.minute - 30)).replace(second=0, microsecond=0)
