@@ -16,11 +16,11 @@ from write_flux_csv import write_flux_file
 __version__ = '1.0.2.post'
 
 def get_previous_half_hour(t: datetime):
-    return (t - timedelta(minutes=t.minutes if t.minutes < 30 else t.minutes - 30)).replace(second=0, microsecond=0)
+    return (t - timedelta(minutes=t.minute if t.minute < 30 else t.minute - 30)).replace(second=0, microsecond=0)
 
 
 def get_next_half_hour(t: datetime):
-    return (t + timedelta(minutes=30 - t.minutes if t.minutes < 30 else 60 - t.minutes)).replace(second=0, microsecond=0)
+    return (t + timedelta(minutes=30 - t.minute if t.minute < 30 else 60 - t.minute)).replace(second=0, microsecond=0)
     
 
 def read_eddy_covariance_data(fns: List[str], time_range: List[datetime]) -> pd.DataFrame:
