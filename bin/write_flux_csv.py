@@ -21,7 +21,7 @@ FLAGS = {
     'w_absolute_limits': lambda x: np.isnan(x['w_max']) or (x['w_max'] > 10.0),
     'tsonic_absolute_limits': lambda x: any(np.isnan([x['tsonic_max'], x['tsonic_min']])) or (x['tsonic_max'] > 60.0 or x['tsonic_min'] < -50.0 or x['tsonic_max'] - x['tsonic_min'] > 10.0),
     'co2_absolute_limits': lambda x: any(np.isnan([x['co2_max'], x['co2_min']])) or (x['co2_max'] > 950.0 or x['co2_min'] < 550.0 or x['co2_max'] - x['co2_min'] > 120.0),
-    'h2o_absolute_limits': lambda x: any(np.isnan([x['h2o_max'], x['h2o_max']])) or (x['h2o_max'] > 35.0 or x['h2o_max'] < 2.5 or x['h2o_max'] - x[f'h2o_min'] > 8.0),
+    'h2o_absolute_limits': lambda x: any(np.isnan([x['h2o_max'], x['h2o_min']])) or (x['h2o_max'] > 35.0 or x['h2o_min'] < 2.5 or x['h2o_max'] - x[f'h2o_min'] > 8.0),
     'nonstationary': lambda x: any(np.isnan([x['rnu'], x['rnv'], x['rns'], x['wind_speed_reduction']])) or (
         x['rnu'] > QC_THRESHOLDS['relative_nonstationarity'] or x['rnv'] > QC_THRESHOLDS['relative_nonstationarity'] or
         x['rns'] > QC_THRESHOLDS['relative_nonstationarity'] or x['wind_speed_reduction'] < QC_THRESHOLDS['wind_speed_reduction']
