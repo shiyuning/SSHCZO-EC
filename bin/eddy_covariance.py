@@ -209,15 +209,15 @@ class EddyCovariance:
 
         eta = _wind_direction(self.unit_i)
 
-        if not (np.isnan(u_) & np.isnan(w_) & np.isnan(v_)).all():
+        if not (np.isnan(u_) | np.isnan(w_) | np.isnan(v_)).all():
             ust = math.sqrt(math.sqrt(np.nanmean(u_ * w_) * np.nanmean(u_ * w_) + np.nanmean(v_ * w_) * np.nanmean(v_ * w_)))
             print(f'  Friction velocity: {ust:.3f} m/s')
         else:
             ust = np.nan
 
-        sh = RHO_AIR * C_AIR * np.nanmean(w_ * tsonic_) if not (np.isnan(w_) & np.isnan(tsonic_)).all() else np.nan
-        fc = np.nanmean(w_ * co2_) if not (np.isnan(w_) & np.isnan(co2_)).all() else np.nan
-        e = np.nanmean(w_ * h2o_) / 1000.0 if not (np.isnan(w_) & np.isnan(h2o_)).all() else np.nan
+        sh = RHO_AIR * C_AIR * np.nanmean(w_ * tsonic_) if not (np.isnan(w_) | np.isnan(tsonic_)).all() else np.nan
+        fc = np.nanmean(w_ * co2_) if not (np.isnan(w_) | np.isnan(co2_)).all() else np.nan
+        e = np.nanmean(w_ * h2o_) / 1000.0 if not (np.isnan(w_) | np.isnan(h2o_)).all() else np.nan
 
         if not np.isnan(sh): print(f'  Sensible heat flux: {sh:.2f} umol/m2/s')
         if not np.isnan(e): print(f'  Latent heat flux: {e * LV:.2f} W/m2')
