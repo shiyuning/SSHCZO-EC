@@ -44,6 +44,7 @@ def spikes(df: pd.DataFrame) -> Tuple[pd.Series, float]:
     df['spike'] = False
     col: str = df.columns[0]
     spikes_found: list = []
+    count = 0
 
     while True:
         # Loop through each window is very computationally expensive. Instead, the evaluations are performed using a
@@ -72,7 +73,8 @@ def spikes(df: pd.DataFrame) -> Tuple[pd.Series, float]:
         df['spike'] = (df[col] < df['rolling_min']) | (df[col] > df['rolling_max'])
 
         # Return if no spikes can be found any more
-        if not df['spike'].any():
+        count += 1
+        if not df['spike'].any() or count > 20:
             return df[col], len(spikes_found) / len(df)
 
         # Find consecutive spikes and remove them
